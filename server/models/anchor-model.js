@@ -31,6 +31,25 @@ class AnchorModel extends MongoModels {
     });
   }
 
+
+  static get(request, reply) {
+
+    const query = {};
+    const fields = request.query.fields;
+    const sort = request.query.sort;
+    const limit = request.query.limit;
+    const page = request.query.page;
+
+    request.pre.model.pagedFind(query, fields, sort, limit, page, (err, results) => {
+
+      if (err) {
+        return reply(err);
+      }
+
+      reply(results);
+    });
+  }
+
   static applyDefaultValues(document) {}
 
   static applyAnchorValues(document) {

@@ -33,20 +33,7 @@ internals.applyRoutes = function (server, next) {
     },
     handler: function (request, reply) {
 
-      const query = {};
-      const fields = request.query.fields;
-      const sort = request.query.sort;
-      const limit = request.query.limit;
-      const page = request.query.page;
-
-      request.pre.model.pagedFind(query, fields, sort, limit, page, (err, results) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        reply(results);
-      });
+      request.pre.model.get(request, reply);
 
     }
   });
