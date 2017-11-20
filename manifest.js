@@ -57,6 +57,16 @@ const manifest = {
     },
     {
       plugin: {
+        register: './server/api/anchor-api',
+        options: {
+          models: {
+            post: './server/models/post'
+          }
+        }
+      }
+    },
+    {
+      plugin: {
         register: 'hicsail-hapi-mongo-models',
         options: {
           mongodb: Config.get('/hapiMongoModels/mongodb'),
