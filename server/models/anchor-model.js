@@ -5,24 +5,20 @@ const MongoModels = require('hicsail-mongo-models');
 
 class AnchorModel extends MongoModels {
 
-  static create() {
+  static create(document, callback) {
 
     const self = this;
-    const args = new Array(arguments.length);
-    const callback = args.pop();
-    const document = args.shift();
 
-    if (!document.createdAt){
-      document.createdAt = new Date();
-    }
+    self.applyDefaultValues(document);
 
     Async.auto({
       validate: function (done) {
 
-        Joi.validate(document, this.schema, done);
+        Joi.validate(document, self.schema, done);
       },
       insert: ['validate', function (results, done) {
 
+        self.applyAnchorValues(document);
         self.insertOne(document,done);
       }]
     }, (err, doc) => {
@@ -33,6 +29,13 @@ class AnchorModel extends MongoModels {
 
       callback(null, doc);
     });
+  }
+
+  static applyDefaultValues(document) {}
+
+  static applyAnchorValues(document) {
+
+    document.createdAt = document.createdAt || new Date();
   }
 }
 module.exports = AnchorModel;
