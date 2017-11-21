@@ -1,6 +1,7 @@
 'use strict';
-const Joi = require('joi');
 const Async = require('async');
+const Boom = require('boom');
+const Joi = require('joi');
 const MongoModels = require('hicsail-mongo-models');
 
 class AnchorModel extends MongoModels {
@@ -47,6 +48,30 @@ class AnchorModel extends MongoModels {
       }
 
       reply(results);
+    });
+  }
+
+
+  static update(request, reply) {
+
+    const id = request.params.id;
+    request.payload.updatedAt = new Date();
+
+    const update = {
+      $set: request.payload
+    };
+
+    request.pre.model.findByIdAndUpdate(id, update, (err, document) => {
+
+      if (err) {
+        return reply(err);
+      }
+
+      if (!document) {
+        return reply(Boom.notFound('Document not found.'));
+      }
+
+      reply(document);
     });
   }
 

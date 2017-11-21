@@ -98,6 +98,51 @@ internals.applyRoutes = function (server, next) {
     }
   });
 
+
+  server.route({
+    method: 'PUT',
+    path: '/api/{model}/{id}',
+    config: {
+      auth: {
+        strategies: ['simple', 'jwt', 'session']
+      },
+      pre: [{
+        assign: 'model',
+        method: function (request, reply) {
+
+          const path = models[request.params.model];
+
+          if (!path) {
+
+            return reply(Boom.notFound('Model not found'));
+          }
+
+          const model = require(Path.join(__dirname,'../..',models[request.params.model]));
+          reply(model);
+        }
+      },{
+        assign: 'payload',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          Joi.validate(request.payload, model.payload, (err, result) => {
+
+            if (err) {
+              return reply(Boom.conflict(err.message));
+            }
+
+            reply(true);
+          });
+        }
+      }]
+    },
+    handler: function (request, reply) {
+
+      request.pre.model.update(request, reply);
+
+    }
+  });
+
   next();
 };
 
