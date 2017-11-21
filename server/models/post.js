@@ -15,6 +15,13 @@ Post.schema = Joi.object({
   userId: Joi.string().required()
 });
 
+Post.payload = Joi.object({
+  title: Joi.string().required(),
+  description: Joi.string().optional()
+});
+
+Post.userId = true;
+
 
 Post.indexes = [
   { key: { userId: 1 } }

@@ -1,5 +1,6 @@
 'use strict';
 const Boom = require('boom');
+const Joi = require('joi');
 const Path = require('path');
 let models = {};
 
@@ -34,6 +35,65 @@ internals.applyRoutes = function (server, next) {
     handler: function (request, reply) {
 
       request.pre.model.get(request, reply);
+
+    }
+  });
+
+  server.route({
+    method: 'POST',
+    path: '/api/{model}',
+    config: {
+      auth: {
+        strategies: ['simple', 'jwt', 'session']
+      },
+      pre: [{
+        assign: 'model',
+        method: function (request, reply) {
+
+          const path = models[request.params.model];
+
+          if (!path) {
+
+            return reply(Boom.notFound('Model not found'));
+          }
+
+          const model = require(Path.join(__dirname,'../..',models[request.params.model]));
+          reply(model);
+        }
+      }, {
+        assign: 'payload',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          Joi.validate(request.payload, model.payload, (err, result) => {
+
+            if (err) {
+              return reply(Boom.conflict(err.message));
+            }
+
+            reply(true);
+          });
+        }
+      }]
+    },
+    handler: function (request, reply) {
+
+      const model = request.pre.model;
+      const document = request.payload;
+
+
+      if (model.userId) {
+        document.userId = request.auth.credentials.user._id.toString();
+      }
+
+      request.pre.model.create(document, (err, result) => {
+
+        if (err) {
+          return reply(err);
+        }
+
+        reply(result);
+      });
 
     }
   });

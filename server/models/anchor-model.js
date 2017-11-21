@@ -21,13 +21,13 @@ class AnchorModel extends MongoModels {
         self.applyAnchorValues(document);
         self.insertOne(document,done);
       }]
-    }, (err, doc) => {
+    }, (err, result) => {
 
       if (err) {
         return callback(err);
       }
 
-      callback(null, doc);
+      callback(null, result.insert[0]);
     });
   }
 
