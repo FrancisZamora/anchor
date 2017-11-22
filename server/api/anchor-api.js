@@ -30,6 +30,26 @@ internals.applyRoutes = function (server, next) {
           const model = require(Path.join(__dirname,'../..',models[request.params.model]));
           reply(model);
         }
+      }, {
+        assign: 'scope',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          const userScope = request.auth.credentials.user.roles;
+          const routeScopes = model.settings.getScope;
+
+          if (!routeScopes) {
+            reply(true);
+          }
+
+          for (const scope of routeScopes) {
+            if (userScope[scope]) {
+              return reply(true);
+            }
+          }
+
+          return reply(Boom.unauthorized('User does not have correct permissions.'));
+        }
       }]
     },
     handler: function (request, reply) {
@@ -61,6 +81,26 @@ internals.applyRoutes = function (server, next) {
           reply(model);
         }
       }, {
+        assign: 'scope',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          const userScope = request.auth.credentials.user.roles;
+          const routeScopes = model.settings.getScope;
+
+          if (!routeScopes) {
+            reply(true);
+          }
+
+          for (const scope of routeScopes) {
+            if (userScope[scope]) {
+              return reply(true);
+            }
+          }
+
+          return reply(Boom.unauthorized('User does not have correct permissions.'));
+        }
+      }, {
         assign: 'payload',
         method: function (request, reply) {
 
@@ -82,7 +122,7 @@ internals.applyRoutes = function (server, next) {
       const document = request.payload;
 
 
-      if (model.userId) {
+      if (model.settings.userId) {
         document.userId = request.auth.credentials.user._id.toString();
       }
 
@@ -119,6 +159,26 @@ internals.applyRoutes = function (server, next) {
 
           const model = require(Path.join(__dirname,'../..',models[request.params.model]));
           reply(model);
+        }
+      }, {
+        assign: 'scope',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          const userScope = request.auth.credentials.user.roles;
+          const routeScopes = model.settings.getScope;
+
+          if (!routeScopes) {
+            reply(true);
+          }
+
+          for (const scope of routeScopes) {
+            if (userScope[scope]) {
+              return reply(true);
+            }
+          }
+
+          return reply(Boom.unauthorized('User does not have correct permissions.'));
         }
       },{
         assign: 'payload',

@@ -54,8 +54,12 @@ class AnchorModel extends MongoModels {
 
   static update(request, reply) {
 
+    const self = this;
     const id = request.params.id;
-    request.payload.updatedAt = new Date();
+
+    if (self.settings.timestamps) {
+      request.payload.updatedAt = new Date();
+    }
 
     const update = {
       $set: request.payload
@@ -79,7 +83,20 @@ class AnchorModel extends MongoModels {
 
   static applyAnchorValues(document) {
 
-    document.createdAt = document.createdAt || new Date();
+    const self = this;
+    if (self.settings.timestamps) {
+      document.createdAt = document.createdAt || new Date();
+    }
   }
 }
+
+AnchorModel.settings = {
+  timestamps: true,  //add CreatedAt and UpdatedAt timestamps to your model. Default true
+  userId: true,  //storeUserId
+  getScope: ['root','admin','researcher'],
+  postScope: null,
+  updateScope: ['root','admin'],
+  deleteScope: ['root','admin']
+};
+
 module.exports = AnchorModel;
