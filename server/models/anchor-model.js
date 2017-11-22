@@ -51,6 +51,26 @@ class AnchorModel extends MongoModels {
     });
   }
 
+  static getMy(request, reply) {
+
+    const query = {
+      userId: request.auth.credentials.user._id.toString()
+    };
+    const fields = request.query.fields;
+    const sort = request.query.sort;
+    const limit = request.query.limit;
+    const page = request.query.page;
+
+    request.pre.model.pagedFind(query, fields, sort, limit, page, (err, results) => {
+
+      if (err) {
+        return reply(err);
+      }
+
+      reply(results);
+    });
+  }
+
 
   static update(request, reply) {
 
@@ -79,6 +99,25 @@ class AnchorModel extends MongoModels {
     });
   }
 
+
+  static delete(request, reply) {
+
+    const id = request.params.id;
+
+    request.pre.model.findByIdAndDelete(id, (err, document) => {
+
+      if (err) {
+        return reply(err);
+      }
+
+      if (!document) {
+        return reply(Boom.notFound('Document not found.'));
+      }
+
+      reply({ message: 'Success' });
+    });
+  }
+
   static applyDefaultValues(document) {}
 
   static applyAnchorValues(document) {
@@ -93,10 +132,28 @@ class AnchorModel extends MongoModels {
 AnchorModel.settings = {
   timestamps: true,  //add CreatedAt and UpdatedAt timestamps to your model. Default true
   userId: true,  //storeUserId
-  getScope: ['root','admin','researcher'],
-  postScope: null,
-  updateScope: ['root','admin'],
-  deleteScope: ['root','admin']
+  routes: {
+    getMy: true,
+    getAll: true,
+    create: true,
+    updateMy: true,
+    updateAny: true,
+    deleteMy: true,
+    deleteAny: true,
+    getSchema: true,
+    getPayload: true
+  },
+  scopes: {
+    getMy: null,
+    getAll: ['root','admin','researcher'],
+    create: null,
+    updateMy: null,
+    updateAny: ['root','admin'],
+    deleteMy: null,
+    deleteAny: ['root','admin'],
+    getSchema: null,
+    getPayload: null
+  }
 };
 
 module.exports = AnchorModel;
