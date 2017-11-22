@@ -557,6 +557,130 @@ internals.applyRoutes = function (server, next) {
     }
   });
 
+
+  server.route({
+    method: 'GET',
+    path: '/api/{model}/schema',
+    config: {
+      auth: {
+        strategies: ['simple', 'jwt', 'session']
+      },
+      pre: [{
+        assign: 'model',
+        method: function (request, reply) {
+
+          const path = models[request.params.model];
+
+          if (!path) {
+
+            return reply(Boom.notFound('Model not found'));
+          }
+
+          const model = require(Path.join(__dirname,'../..',models[request.params.model]));
+          reply(model);
+        }
+      }, {
+        assign: 'enabled',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+
+          if (!model.settings.routes.getSchema) {
+            return reply(Boom.notFound('Not Found'));
+          }
+          reply(true);
+        }
+      }, {
+        assign: 'scope',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          const userScope = request.auth.credentials.user.roles;
+          const routeScopes = model.settings.scopes.getSchema;
+
+          if (!routeScopes) {
+            return reply(true);
+          }
+
+          for (const scope of routeScopes) {
+            if (userScope[scope]) {
+              return reply(true);
+            }
+          }
+
+          return reply(Boom.unauthorized('User does not have correct permissions.'));
+        }
+      }]
+    },
+    handler: function (request, reply) {
+
+      reply(request.pre.model.schema);
+
+    }
+  });
+
+
+  server.route({
+    method: 'GET',
+    path: '/api/{model}/payload',
+    config: {
+      auth: {
+        strategies: ['simple', 'jwt', 'session']
+      },
+      pre: [{
+        assign: 'model',
+        method: function (request, reply) {
+
+          const path = models[request.params.model];
+
+          if (!path) {
+
+            return reply(Boom.notFound('Model not found'));
+          }
+
+          const model = require(Path.join(__dirname,'../..',models[request.params.model]));
+          reply(model);
+        }
+      }, {
+        assign: 'enabled',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+
+          if (!model.settings.routes.getPayload) {
+            return reply(Boom.notFound('Not Found'));
+          }
+          reply(true);
+        }
+      }, {
+        assign: 'scope',
+        method: function (request, reply) {
+
+          const model = request.pre.model;
+          const userScope = request.auth.credentials.user.roles;
+          const routeScopes = model.settings.scopes.getPayload;
+
+          if (!routeScopes) {
+            return reply(true);
+          }
+
+          for (const scope of routeScopes) {
+            if (userScope[scope]) {
+              return reply(true);
+            }
+          }
+
+          return reply(Boom.unauthorized('User does not have correct permissions.'));
+        }
+      }]
+    },
+    handler: function (request, reply) {
+
+      reply(request.pre.model.payload);
+
+    }
+  });
+
   next();
 };
 
