@@ -20,7 +20,7 @@ class AnchorModel extends MongoModels {
       insert: ['validate', function (results, done) {
 
         self.applyAnchorValues(document);
-        self.insertOne(document,done);
+        self.insertOne(document, done);
       }]
     }, (err, result) => {
 
@@ -118,7 +118,8 @@ class AnchorModel extends MongoModels {
     });
   }
 
-  static applyDefaultValues(document) {}
+  static applyDefaultValues(document) {
+  }
 
   static applyAnchorValues(document) {
 
@@ -131,28 +132,45 @@ class AnchorModel extends MongoModels {
 
 AnchorModel.settings = {
   timestamps: true,  //add CreatedAt and UpdatedAt timestamps to your model. Default true
-  userId: true,  //storeUserId
-  routes: {
-    getMy: true,
-    getAll: true,
-    create: true,
-    updateMy: true,
-    updateAny: true,
-    deleteMy: true,
-    deleteAny: true,
-    getSchema: true,
-    getPayload: true
+  userId: true  //storeUserId
+};
+
+AnchorModel.routes = {
+  getMy: {
+    disabled: false,
+    scope: null
   },
-  scopes: {
-    getMy: null,
-    getAll: ['root','admin','researcher'],
-    create: null,
-    updateMy: null,
-    updateAny: ['root','admin'],
-    deleteMy: null,
-    deleteAny: ['root','admin'],
-    getSchema: null,
-    getPayload: null
+  get: {
+    disabled: false,
+    scope: ['root', 'admin', 'researcher']
+  },
+  post: {
+    disabled: false,
+    scope: null
+  },
+  putMy: {
+    disabled: false,
+    scope: null
+  },
+  put: {
+    disabled: false,
+    scope: ['root', 'admin', 'researcher']
+  },
+  deleteMy: {
+    disabled: false,
+    scope: null
+  },
+  delete: {
+    disabled: false,
+    scope: ['root', 'admin']
+  },
+  schema: {
+    disabled: false,
+    scope: null
+  },
+  payload: {
+    disabled: false,
+    scope: null
   }
 };
 

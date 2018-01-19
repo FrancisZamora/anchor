@@ -37,7 +37,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.getMy) {
+          if (!model.routes.getMy.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -48,7 +48,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.getMy;
+          const routeScopes = model.routes.getMy.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -98,7 +98,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.getAll) {
+          if (!model.routes.get.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -109,7 +109,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.getAll;
+          const routeScopes = model.routes.get.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -160,7 +160,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.create) {
+          if (!model.routes.post.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -171,7 +171,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.create;
+          const routeScopes = model.routes.post.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -251,7 +251,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.updateMy) {
+          if (!model.routes.putMy.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -262,7 +262,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.updateMy;
+          const routeScopes = model.routes.putMy.disabled;
 
           if (!routeScopes) {
             return reply(true);
@@ -349,7 +349,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.updateAny) {
+          if (!model.routes.put.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -360,7 +360,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.updateAny;
+          const routeScopes = model.routes.put.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -425,7 +425,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.deleteMy) {
+          if (!model.routes.deleteMy.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -436,7 +436,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.deleteMy;
+          const routeScopes = model.routes.deleteMy.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -523,7 +523,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.deleteAny) {
+          if (!model.routes.delete.disbaled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -534,7 +534,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.deleteAny;
+          const routeScopes = model.routes.delete.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -585,7 +585,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.getSchema) {
+          if (!model.routes.schema) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -596,7 +596,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.getSchema;
+          const routeScopes = model.routes.schema.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -647,7 +647,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
 
-          if (!model.settings.routes.getPayload) {
+          if (!model.routes.payload.disabled) {
             return reply(Boom.notFound('Not Found'));
           }
           reply(true);
@@ -658,7 +658,7 @@ internals.applyRoutes = function (server, next) {
 
           const model = request.pre.model;
           const userScope = request.auth.credentials.user.roles;
-          const routeScopes = model.settings.scopes.getPayload;
+          const routeScopes = model.routes.payload.scope;
 
           if (!routeScopes) {
             return reply(true);
@@ -693,5 +693,5 @@ exports.register = function (server, options, next) {
 };
 
 exports.register.attributes = {
-  name: 'anchor-cron'
+  name: 'anchor-crud'
 };

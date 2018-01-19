@@ -20,7 +20,6 @@ Post.payload = Joi.object({
   description: Joi.string().optional()
 });
 
-
 Post.indexes = [
   { key: { userId: 1 } }
 ];
