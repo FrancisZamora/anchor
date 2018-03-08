@@ -1,244 +1,138 @@
 'use strict';
 const Confidence = require('confidence');
 const Config = require('./config');
+const Package = require('./package.json');
+const Path = require('path');
+
 
 const criteria = {
-  env: process.env.NODE_ENV
+    env: process.env.NODE_ENV
 };
 
 
 const manifest = {
-  $meta: 'This file defines the plot device.',
-  server: {
-    debug: {
-      request: ['error']
+    $meta: 'This file defines the plot device.',
+    server: {
+        debug: {
+            request: ['error']
+        },
+        routes: {
+            security: true
+        },
+        port: Config.get('/port/web')
     },
-    connections: {
-      routes: {
-        security: true
-      }
-    }
-  },
-  connections: [{
-    port: Config.get('/port/web'),
-    labels: ['web']
-  }],
-  registrations: [
-    {
-      plugin: 'hapi-auth-basic'
-    },
-    {
-      plugin: 'hapi-auth-cookie'
-    },
-    {
-      plugin: 'hapi-auth-jwt2'
-    },
-    {
-      plugin: 'lout'
-    },
-    {
-      plugin: 'inert'
-    },
-    {
-      plugin: 'vision'
-    },
-    {
-      plugin: {
-        register: 'visionary',
-        options: {
-          engines: { handlebars: 'handlebars' },
-          path: './server/web/templates',
-          layout: 'layout',
-          layoutPath: './server/web/layouts',
-          partialsPath: './server/web/partials',
-          helpersPath: './server/web/helpers'
-        }
-      }
-    },
-    {
-      plugin: {
-        register: 'hicsail-hapi-mongo-models',
-        options: {
-          mongodb: Config.get('/hapiMongoModels/mongodb'),
-          models: {
-            AuthAttempt: './server/models/auth-attempt',
-            Backup: './server/models/backup',
-            Event: './server/models/event',
-            Feedback: './server/models/feedback',
-            Invite: './server/models/invite',
-            Session: './server/models/session',
-            Token: './server/models/token',
-            User: './server/models/user'
-          },
-          autoIndex: Config.get('/hapiMongoModels/autoIndex')
-        }
-      }
-    },
-    {
-      plugin: {
-        register: 'hapi-cron',
-        options: {
-          jobs: [{
-            name: 'backup',
-            time: '0 0 * * * *', //every hour
-            timezone: 'America/New_York',
-            request: {
-              method: 'POST',
-              url: '/api/backups/internal',
-              allowInternals: true
+    register: {
+        plugins: [
+            {
+                plugin: 'good',
+                options: {
+                    reporters: {
+                        myConsoleReporter: [
+                            {
+                                module: 'good-squeeze',
+                                name: 'Squeeze',
+                                args: [{
+                                    error: '*',
+                                    log: '*',
+                                    request: '*',
+                                    response:'*'
+                                }]
+                            },
+                            {
+                                module: 'good-console',
+                                args: [{
+                                    color: {
+                                        $filter: 'env',
+                                        production: false,
+                                        $default: true
+                                    }
+                                }]
+                            },
+                            'stdout'
+                        ]
+                    }
+                }
+            },
+            {
+                plugin: 'hapi-auth-basic'
+            },
+            {
+                plugin: 'hapi-remote-address'
+            },
+            {
+                plugin: 'inert'
+            },
+            {
+                plugin: 'vision'
+            },
+            {
+                plugin:'hapi-swagger',
+                options: {
+                    info: {
+                        title: 'Frame API Documentation',
+                        version: Package.version
+                    },
+                    grouping: 'tags',
+                    sortTags: 'name'
+                }
+            },
+            {
+                plugin: 'hapi-mongo-models',
+                options: {
+                    mongodb: Config.get('/hapiMongoModels/mongodb'),
+                    models: [
+                        Path.resolve(__dirname, './server/models/account'),
+                        Path.resolve(__dirname, './server/models/admin-group'),
+                        Path.resolve(__dirname, './server/models/admin'),
+                        Path.resolve(__dirname, './server/models/auth-attempt'),
+                        Path.resolve(__dirname, './server/models/session'),
+                        Path.resolve(__dirname, './server/models/status'),
+                        Path.resolve(__dirname, './server/models/user')
+                    ],
+                    autoIndex: Config.get('/hapiMongoModels/autoIndex')
+                }
+            },
+            {
+                plugin: './server/auth'
+            },
+            {
+                plugin: './server/api/accounts'
+            },
+            {
+                plugin: './server/api/admin-groups'
+            },
+            {
+                plugin: './server/api/admins'
+            },
+            {
+                plugin: './server/api/contact'
+            },
+            {
+                plugin: './server/api/main'
+            },
+            {
+                plugin: './server/api/login'
+            },
+            {
+                plugin: './server/api/logout'
+            },
+            {
+                plugin: './server/api/sessions'
+            },
+            {
+                plugin: './server/api/signup'
+            },
+            {
+                plugin: './server/api/statuses'
+            },
+            {
+                plugin: './server/api/users'
+            },
+            {
+                plugin: './server/web/main'
             }
-          }]
-        }
-      }
-    },
-    {
-      plugin: './server/auth'
-    },
-    {
-      plugin: './server/mailer'
-    },
-    {
-      plugin: './server/api/auth-attempts',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/backups',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/clinician',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/contact',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/env',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/events',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/feedback',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/index',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/invites',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/login',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/logout',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/sessions',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/signup',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/tokens',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/api/users',
-      options: {
-        routes: { prefix: '/api' }
-      }
-    },
-    {
-      plugin: './server/web/routes/account'
-    },
-    {
-      plugin: './server/web/routes/authAttempts'
-    },
-    {
-      plugin: './server/web/routes/backup'
-    },
-    {
-      plugin: './server/web/routes/clinician'
-    },
-    {
-      plugin: './server/web/routes/dashboard'
-    },
-    {
-      plugin: './server/web/routes/events'
-    },
-    {
-      plugin: './server/web/routes/env'
-    },
-    {
-      plugin: './server/web/routes/feedback'
-    },
-    {
-      plugin: './server/web/routes/index'
-    },
-    {
-      plugin: './server/web/routes/invite'
-    },
-    {
-      plugin: './server/web/routes/login'
-    },
-    {
-      plugin: './server/web/routes/public'
-    },
-    {
-      plugin: './server/web/routes/sessions'
-    },
-    {
-      plugin: './server/web/routes/setup'
-    },
-    {
-      plugin: './server/web/routes/signup'
-    },
-    {
-      plugin: './server/web/routes/tokens'
-    },
-    {
-      plugin: './server/web/routes/users'
+        ]
     }
-  ]
 };
 
 
@@ -247,11 +141,11 @@ const store = new Confidence.Store(manifest);
 
 exports.get = function (key) {
 
-  return store.get(key, criteria);
+    return store.get(key, criteria);
 };
 
 
 exports.meta = function (key) {
 
-  return store.meta(key, criteria);
+    return store.meta(key, criteria);
 };

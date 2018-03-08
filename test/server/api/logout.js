@@ -1,168 +1,85 @@
 'use strict';
 const AuthPlugin = require('../../../server/auth');
-const AuthenticatedUser = require('../fixtures/credentials-admin');
 const Code = require('code');
-const Config = require('../../../config');
+const Fixtures = require('../fixtures');
 const Hapi = require('hapi');
-const HapiAuthBasic = require('hapi-auth-basic');
-const HapiAuthCookie = require('hapi-auth-cookie');
-const HapiAuthJWT = require('hapi-auth-jwt2');
-const Hoek = require('hoek');
 const Lab = require('lab');
-const LogoutPlugin = require('../../../server/api/logout');
-const MakeMockModel = require('../fixtures/make-mock-model');
+const Logout = require('../../../server/api/logout');
 const Manifest = require('../../../manifest');
-const Path = require('path');
-const Proxyquire = require('proxyquire');
+const Session = require('../../../server/models/session');
+const User = require('../../../server/models/user');
 
 
 const lab = exports.lab = Lab.script();
-let request;
 let server;
-let stub;
 
 
-lab.before((done) => {
+lab.before(async () => {
 
-  stub = {
-    Session: MakeMockModel()
-  };
+    server = Hapi.Server();
 
-  const proxy = {};
-  proxy[Path.join(process.cwd(), './server/models/session')] = stub.Session;
+    const plugins = Manifest.get('/register/plugins')
+        .filter((entry) => Logout.dependencies.includes(entry.plugin))
+        .map((entry) => {
 
-  const ModelsPlugin = {
-    register: Proxyquire('hicsail-hapi-mongo-models', proxy),
-    options: Manifest.get('/registrations').filter((reg) => {
+            entry.plugin = require(entry.plugin);
 
-      if (reg.plugin &&
-        reg.plugin.register &&
-        reg.plugin.register === 'hicsail-hapi-mongo-models') {
+            return entry;
+        });
 
-        return true;
-      }
+    plugins.push(AuthPlugin);
+    plugins.push(Logout);
 
-      return false;
-    })[0].plugin.options
-  };
-
-  const plugins = [HapiAuthBasic, HapiAuthCookie, HapiAuthJWT, ModelsPlugin, AuthPlugin, LogoutPlugin];
-  server = new Hapi.Server();
-  server.connection({ port: Config.get('/port/web') });
-  server.register(plugins, (err) => {
-
-    if (err) {
-      return done(err);
-    }
-
-    server.initialize(done);
-  });
+    await server.register(plugins);
+    await server.start();
+    await Fixtures.Db.removeAllData();
 });
 
 
-lab.after((done) => {
+lab.after(async () => {
 
-  server.plugins['hicsail-hapi-mongo-models'].MongoModels.disconnect();
-
-  done();
+    await Fixtures.Db.removeAllData();
+    await server.stop();
 });
 
 
-lab.experiment('Logout Plugin (Delete Session)', () => {
+lab.experiment('DELETE /api/logout', () => {
 
-  lab.beforeEach((done) => {
-
-    request = {
-      method: 'DELETE',
-      url: '/logout',
-      credentials: AuthenticatedUser
-    };
-
-    done();
-  });
+    let request;
 
 
-  lab.test('it returns an error when delete fails', (done) => {
+    lab.beforeEach(() => {
 
-    stub.Session.findByIdAndDelete = function () {
-
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
-
-      callback(Error('delete failed'));
-    };
-
-    server.inject(request, (response) => {
-
-      Code.expect(response.statusCode).to.equal(500);
-
-      done();
+        request = {
+            method: 'DELETE',
+            url: '/api/logout'
+        };
     });
-  });
 
 
-  lab.test('it returns a not found when delete misses (no credentials)', (done) => {
+    lab.test('it returns HTTP 200 when credentials are missing', async () => {
 
-    stub.Session.findByIdAndDelete = function () {
+        const response = await server.inject(request);
 
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
-
-      callback(null, 0);
-    };
-
-    delete request.credentials;
-
-    server.inject(request, (response) => {
-
-      Code.expect(response.statusCode).to.equal(404);
-      Code.expect(response.result.message).to.match(/document not found/i);
-
-      done();
+        Code.expect(response.statusCode).to.equal(200);
+        Code.expect(response.result.message).to.match(/success/i);
     });
-  });
 
 
-  lab.test('it returns a not found when delete misses (missing user from credentials)', (done) => {
+    lab.test('it returns HTTP 200 when credentials are present', async () => {
 
-    stub.Session.deleteOne = function () {
+        const user = await User.create('ren', 'baddog', 'ren@stimpy.show');
+        const session = await Session.create('ren', 'baddog', 'ren@stimpy.show');
 
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
+        request.credentials = {
+            roles: [],
+            session,
+            user
+        };
 
-      callback(null, 0);
-    };
+        const response = await server.inject(request);
 
-    const CorruptedAuthenticatedUser = Hoek.clone(AuthenticatedUser);
-    CorruptedAuthenticatedUser.user = undefined;
-    request.credentials = CorruptedAuthenticatedUser;
-
-    server.inject(request, (response) => {
-
-      Code.expect(response.statusCode).to.equal(404);
-      Code.expect(response.result.message).to.match(/document not found/i);
-
-      done();
+        Code.expect(response.statusCode).to.equal(200);
+        Code.expect(response.result.message).to.match(/success/i);
     });
-  });
-
-
-  lab.test('it deletes the authenticated user session successfully', (done) => {
-
-    stub.Session.findByIdAndDelete = function () {
-
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
-
-      callback(null, 1);
-    };
-
-    server.inject(request, (response) => {
-
-      Code.expect(response.statusCode).to.equal(200);
-      Code.expect(response.result.message).to.match(/success/i);
-
-      done();
-    });
-  });
 });

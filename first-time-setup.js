@@ -1,130 +1,109 @@
 'use strict';
-const Async = require('async');
-const Config = require('./config');
-const Joi = require('joi');
-const MongoModels = require('hicsail-mongo-models');
-const Mongodb = require('mongodb');
+const Account = require('./server/models/account');
+const Admin = require('./server/models/admin');
+const AdminGroup = require('./server/models/admin-group');
+const AuthAttempt = require('./server/models/auth-attempt');
+const MongoModels = require('mongo-models');
 const Promptly = require('promptly');
+const Session = require('./server/models/session');
+const Status = require('./server/models/status');
 const User = require('./server/models/user');
-const PasswordComplexity = require('joi-password-complexity');
 
-Async.auto({
-  mongodbUri: (done) => {
 
-    const options = {
-      default: 'mongodb://localhost:27017/anchor'
+const main = async function () {
+
+    let options = {};
+
+    // get mongodb connection info
+
+    options = {
+        default: 'mongodb://localhost:27017/'
     };
+    const mongodbUri = await Promptly.prompt(`MongoDB URI: (${options.default})`, options);
 
-    Promptly.prompt(`MongoDB URI: (${options.default})`, options, done);
-  },
-  testMongo: ['mongodbUri', (results, done) => {
+    options = {
+        default: 'frame'
+    };
+    const mongodbName = await Promptly.prompt(`MongoDB name: (${options.default})`, options);
 
-    Mongodb.MongoClient.connect(results.mongodbUri, {}, (err, db) => {
+    // connect to db
 
-      if (err) {
-        console.error('Failed to connect to Mongodb.');
-        return done(err);
-      }
+    const db = await MongoModels.connect({ uri: mongodbUri, db: mongodbName });
 
-      db.close();
-      done(null, true);
-    });
-  }],
-  rootEmail: ['testMongo', (results, done) => {
+    if (!db) {
+        throw Error('Could not connect to MongoDB.');
+    }
 
-    Promptly.prompt('Root user email:', done);
-  }],
-  rootPassword: ['rootEmail', (results, done) => {
+    // get root user creds
 
-    Promptly.password('Root user password:', done);
-  }],
-  rootPasswordCheck: ['rootPassword', (results, done) => {
+    const rootEmail = await Promptly.prompt('Root user email:');
+    const rootPassword = await Promptly.password('Root user password:');
 
-    const complexityOptions = Config.get('/passwordComplexity');
-    Joi.validate(results.rootPassword, new PasswordComplexity(complexityOptions),done);
-  }],
-  setupRootUser: ['rootPassword', (results, done) => {
+    // clear tables
 
-    Async.auto({
-      connect: function (done) {
+    await Promise.all([
+        Account.deleteMany({}),
+        AdminGroup.deleteMany({}),
+        Admin.deleteMany({}),
+        AuthAttempt.deleteMany({}),
+        Session.deleteMany({}),
+        Status.deleteMany({}),
+        User.deleteMany({})
+    ]);
 
-        MongoModels.connect(results.mongodbUri, {}, done);
-      },
-      rootUser: ['connect', (dbResults, done) => {
+    // setup root group
 
-        User.findOne({ username: 'root' }, done);
-      }],
-      rootUserCheck: ['rootUser', (dbResults, done) => {
+    await AdminGroup.create('Root');
 
-        if (results.rootUser) {
-          return done(Error('Root User already exists'));
+    // setup root admin and user
+
+    await Admin.insertOne(new Admin({
+        _id: Admin.ObjectId('111111111111111111111111'),
+        groups: {
+            root: 'Root'
+        },
+        name: {
+            first: 'Root',
+            middle: '',
+            last: 'Admin'
+        },
+        user: {
+            id: '000000000000000000000000',
+            name: 'root'
         }
-        done();
-      }],
-      userEmail:['rootUserCheck', function (dbResults, done) {
+    }));
 
-        User.findOne({ email: results.rootEmail }, done);
-      }],
-      emailCheck:['userEmail', function (dbResults, done) {
+    const passwordHash = await User.generatePasswordHash(rootPassword);
 
-        console.log(dbResults.userEmail);
-        if (dbResults.userEmail) {
-          done(Error('Email is in use'));
-        }
-        else {
-          done();
-        }
-      }],
-      user: ['emailCheck', function (dbResults, done) {
+    await User.insertOne(new User({
+        _id: User.ObjectId('000000000000000000000000'),
+        email: rootEmail.toLowerCase(),
+        password: passwordHash.hash,
+        roles: {
+            admin: {
+                id: '111111111111111111111111',
+                name: 'Root Admin'
+            }
+        },
+        username: 'root'
+    }));
 
-        Async.auto({
-          passwordHash: function (done) {
+    // all done
 
-            User.generatePasswordHash(results.rootPassword,done);
-          }
-        }, (err, passResults) => {
+    MongoModels.disconnect();
 
-          if (err) {
-            return done(err);
-          }
+    console.log('First time setup complete.');
 
-          const document = {
-            _id: User.ObjectId('000000000000000000000000'),
-            isActive: true,
-            username: 'root',
-            name: 'Root',
-            password: passResults.passwordHash.hash,
-            email: results.rootEmail.toLowerCase(),
-            roles: {
-              root: true
-            },
-            timeCreated: new Date()
-          };
+    process.exit(0);
+};
 
-          User.insertOne(document, (err, docs) => {
 
-            done(err, docs && docs[0]);
-          });
-        });
-      }]
-    }, (err, dbResults) => {
+main().catch((err) => {
 
-      if (err) {
-        console.error('Failed to setup root user.');
-        return done(err);
-      }
-
-      done(null, true);
-    });
-  }]
-}, (err, results) => {
-
-  if (err) {
-    console.error('Setup failed.');
+    console.log('First time setup failed.');
     console.error(err);
-    return process.exit(1);
-  }
 
-  console.log('Setup complete.');
-  process.exit(0);
+    MongoModels.disconnect();
+
+    process.exit(1);
 });

@@ -1,274 +1,147 @@
 'use strict';
 const Boom = require('boom');
 const Joi = require('joi');
+const Preware = require('../preware');
+const Session = require('../models/session');
 
 
-const internals = {};
+const register = function (server, serverOptions) {
+
+    server.route({
+        method: 'GET',
+        path: '/api/sessions',
+        options: {
+            tags: ['api','session'],
+            auth: {
+                scope: 'admin'
+            },
+            validate: {
+                query: {
+                    sort: Joi.string().default('_id'),
+                    limit: Joi.number().default(20),
+                    page: Joi.number().default(1)
+                }
+            },
+            pre: [
+                Preware.requireAdminGroup('root')
+            ]
+        },
+        handler: async function (request, h) {
+
+            const query = {};
+            const limit = request.query.limit;
+            const page = request.query.page;
+            const options = {
+                sort: Session.sortAdapter(request.query.sort)
+            };
+
+            return await Session.pagedFind(query, limit, page, options);
+        }
+    });
 
 
-internals.applyRoutes = function (server, next) {
+    server.route({
+        method: 'GET',
+        path: '/api/sessions/{id}',
+        options: {
+            tags: ['api','session'],
+            auth: {
+                scope: 'admin'
+            },
+            pre: [
+                Preware.requireAdminGroup('root')
+            ]
+        },
+        handler: async function (request, h) {
 
-  const Session = server.plugins['hicsail-hapi-mongo-models'].Session;
-  const User = server.plugins['hicsail-hapi-mongo-models'].User;
+            const session = await Session.findById(request.params.id);
 
-  server.route({
-    method: 'GET',
-    path: '/table/sessions',
-    config: {
-      auth: {
-        strategies: ['simple', 'jwt', 'session']
-      },
-      validate: {
-        query: Joi.any()
-      }
-    },
-    handler: function (request, reply) {
-
-      const accessLevel = User.highestRole(request.auth.credentials.user.roles);
-      const sortOrder = request.query['order[0][dir]'] === 'asc' ? '' : '-';
-      const sort = sortOrder + request.query['columns[' + Number(request.query['order[0][column]']) + '][data]'];
-      const limit = Number(request.query.length);
-      const page = Math.ceil(Number(request.query.start) / limit) + 1;
-      let fields = request.query.fields;
-
-      const query = {};
-      //no role
-      if (accessLevel === 0) {
-        query.userId = request.auth.credentials.user._id.toString();
-      }
-      //analyst
-      else if (accessLevel === 1) {
-        if (fields) {
-          fields = fields.split(' ');
-          let length = fields.length;
-          for (let i = 0; i < length; ++i) {
-            if (User.PHI().concat(['key']).indexOf(fields[i]) !== -1) {
-
-              fields.splice(i, 1);
-              i--;
-              length--;
+            if (!session) {
+                throw Boom.notFound('Session not found.');
             }
-          }
-          fields = fields.join(' ');
+
+            return session;
         }
-      }
-      //clinician
-      else if (accessLevel === 2) {
-        query.username = request.auth.credentials.user.username;
-      }
+    });
 
-      let userFields = 'studyID username';
-      if (accessLevel === 1) {
-        //if analyst remove PHI
-        userFields = userFields.split(' ');
-        let length = userFields.length;
-        for (let i = 0; i < length; ++i) {
-          if (User.PHI().indexOf(userFields[i]) !== -1) {
 
-            userFields.splice(i, 1);
-            i--;
-            length--;
-          }
+    server.route({
+        method: 'DELETE',
+        path: '/api/sessions/{id}',
+        options: {
+            tags: ['api','session'],
+            auth: {
+                scope: 'admin'
+            },
+            pre: [
+                Preware.requireAdminGroup('root')
+            ]
+        },
+        handler: async function (request, h) {
+
+            const session = await Session.findByIdAndDelete(request.params.id);
+
+            if (!session) {
+                throw Boom.notFound('Session not found.');
+            }
+
+            return { message: 'Success.' };
         }
-        userFields = userFields.join(' ');
-      }
-      userFields = User.fieldsAdapter(userFields);
+    });
 
-      Session.pagedLookupById(query,sort,limit,page,User,'user','userId',fields, userFields, (err, results) => {
 
-        if (err) {
-          return reply(err);
+    server.route({
+        method: 'GET',
+        path: '/api/sessions/my',
+        options: {
+            tags: ['api','session'],
+            auth: {
+                scope: ['admin', 'account']
+            }
+        },
+        handler: async function (request, h) {
+
+            const query = {
+                userId: `${request.auth.credentials.user._id}`
+            };
+
+            return await Session.find(query);
         }
+    });
 
-        reply({
-          draw: request.query.draw,
-          recordsTotal: results.data.length,
-          recordsFiltered: results.items.total,
-          data: results.data,
-          error: err
-        });
-      });
-    }
-  });
 
-  server.route({
-    method: 'GET',
-    path: '/sessions',
-    config: {
-      auth: {
-        strategies: ['simple', 'jwt', 'session'],
-        scope: ['root', 'admin', 'researcher']
-      },
-      validate: {
-        query: {
-          fields: Joi.string(),
-          sort: Joi.string().default('_id'),
-          limit: Joi.number().default(20),
-          page: Joi.number().default(1)
+    server.route({
+        method: 'DELETE',
+        path: '/api/sessions/my/{id}',
+        handler: async function (request, h) {
+
+            const currentSession = `${request.auth.credentials.session._id}`;
+
+            if (currentSession === request.params.id) {
+                throw Boom.badRequest(
+                    'Cannot destroy your current session. Also see `/api/logout`.'
+                );
+            }
+
+            const query = {
+                _id: Session.ObjectID(request.params.id),
+                userId: `${request.auth.credentials.user._id}`
+            };
+
+            await Session.findOneAndDelete(query);
+
+            return { message: 'Success.' };
         }
-      }
-    },
-    handler: function (request, reply) {
-
-      const query = {};
-      const fields = request.query.fields;
-      const sort = request.query.sort;
-      const limit = request.query.limit;
-      const page = request.query.page;
-
-      Session.pagedFind(query, fields, sort, limit, page, (err, results) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        reply(results);
-      });
-    }
-  });
-
-
-  server.route({
-    method: 'GET',
-    path: '/sessions/my',
-    config: {
-      auth: {
-        strategies: ['simple', 'jwt', 'session']
-      }
-    },
-    handler: function (request, reply) {
-
-      const id = request.auth.credentials.user._id.toString();
-
-      Session.find({ userId: id }, (err, session) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        if (!session) {
-          return reply(Boom.notFound('Document not found.'));
-        }
-
-        reply(session);
-      });
-    }
-  });
-
-
-  server.route({
-    method: 'GET',
-    path: '/sessions/{id}',
-    config: {
-      auth: {
-        strategies: ['simple', 'jwt', 'session'],
-        scope: ['root','admin','researcher']
-      }
-    },
-    handler: function (request, reply) {
-
-      Session.findById(request.params.id, (err, session) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        if (!session) {
-          return reply(Boom.notFound('Document not found.'));
-        }
-
-        reply(session);
-      });
-    }
-  });
-
-  server.route({
-    method: 'DELETE',
-    path: '/sessions/my/{id}',
-    config: {
-      auth: {
-        strategies: ['simple', 'jwt', 'session']
-      },
-      pre: [{
-        assign: 'current',
-        method: function (request, reply) {
-
-          const currentSession = request.auth.credentials.session._id.toString();
-
-          if (currentSession === request.params.id) {
-
-            return reply(Boom.badRequest('Unable to close your current session. You can use logout instead.'));
-          }
-
-          reply(true);
-        }
-      }]
-    },
-    handler: function (request, reply) {
-
-      const id = request.params.id;
-      const userId = request.auth.credentials.user._id.toString();
-
-      const filter = {
-        _id: Session.ObjectID(id),
-        userId
-      };
-
-      Session.findOneAndDelete(filter, (err, session) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        if (!session) {
-          return reply(Boom.notFound('Document not found.'));
-        }
-
-        reply({ message: 'Success' });
-      });
-    }
-  });
-
-
-  server.route({
-    method: 'DELETE',
-    path: '/sessions/{id}',
-    config: {
-      auth: {
-        strategies: ['simple', 'jwt', 'session'],
-        scope: ['root','admin']
-      }
-    },
-    handler: function (request, reply) {
-
-      Session.findByIdAndDelete(request.params.id, (err, session) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        if (!session) {
-          return reply(Boom.notFound('Document not found.'));
-        }
-
-        reply({ message: 'Success.' });
-      });
-    }
-  });
-
-
-  next();
+    });
 };
 
 
-exports.register = function (server, options, next) {
-
-  server.dependency(['auth', 'hicsail-hapi-mongo-models'], internals.applyRoutes);
-
-  next();
-};
-
-
-exports.register.attributes = {
-  name: 'sessions'
+module.exports = {
+    name: 'api-sessions',
+    dependencies: [
+        'auth',
+        'hapi-auth-basic',
+        'hapi-mongo-models'
+    ],
+    register
 };

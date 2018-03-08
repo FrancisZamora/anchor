@@ -1,62 +1,47 @@
 'use strict';
 const Config = require('../../config');
 const Joi = require('joi');
+const Mailer = require('../mailer');
 
 
-const internals = {};
+const register = function (server, serverOptions) {
 
+    server.route({
+        method: 'POST',
+        path: '/api/contact',
+        options: {
+            tags: ['api','contact'],
+            auth: false,
+            validate: {
+                payload: {
+                    name: Joi.string().required(),
+                    email: Joi.string().email().required(),
+                    message: Joi.string().required()
+                }
+            }
+        },
+        handler: async function (request, h) {
 
-internals.applyRoutes = function (server, next) {
+            const emailOptions = {
+                subject: Config.get('/projectName') + ' contact form',
+                to: Config.get('/system/toAddress'),
+                replyTo: {
+                    name: request.payload.name,
+                    address: request.payload.email
+                }
+            };
+            const template = 'contact';
 
-  server.route({
-    method: 'POST',
-    path: '/contact',
-    config: {
-      validate: {
-        payload: {
-          name: Joi.string().required(),
-          email: Joi.string().email().required(),
-          message: Joi.string().required()
+            await Mailer.sendEmail(emailOptions, template, request.payload);
+
+            return { message: 'Success.' };
         }
-      }
-    },
-    handler: function (request, reply) {
-
-      const mailer = request.server.plugins.mailer;
-      const emailOptions = {
-        subject: Config.get('/projectName') + ' contact form',
-        to: Config.get('/system/toAddress'),
-        replyTo: {
-          name: request.payload.name,
-          address: request.payload.email
-        }
-      };
-      const template = 'contact';
-
-      mailer.sendEmail(emailOptions, template, request.payload, (err, info) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        reply({ message: 'Success.' });
-      });
-    }
-  });
-
-
-  next();
+    });
 };
 
 
-exports.register = function (server, options, next) {
-
-  server.dependency('mailer', internals.applyRoutes);
-
-  next();
-};
-
-
-exports.register.attributes = {
-  name: 'contact'
+module.exports = {
+    name: 'api-contact',
+    dependencies: [],
+    register
 };

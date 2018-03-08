@@ -1,314 +1,225 @@
 'use strict';
-const Async = require('async');
+const Account = require('../../../server/models/account');
+const Admin = require('../../../server/models/admin');
 const Code = require('code');
 const Config = require('../../../config');
+const Fixtures = require('../fixtures');
 const Lab = require('lab');
-const Proxyquire = require('proxyquire');
+const User = require('../../../server/models/user');
 
 
 const lab = exports.lab = Lab.script();
-const mongoUri = Config.get('/hapiMongoModels/mongodb/uri');
-const mongoOptions = Config.get('/hapiMongoModels/mongodb/options');
-const stub = {
-  bcrypt: {}
-};
-const User = Proxyquire('../../../server/models/user', {
-  bcrypt: stub.bcrypt
-});
+const config = Config.get('/hapiMongoModels/mongodb');
 
-lab.experiment('User Class Methods', () => {
 
-  lab.before((done) => {
+lab.experiment('User Model', () => {
 
-    User.connect(mongoUri, mongoOptions, (err, db) => {
+    lab.before(async () => {
 
-      done(err);
+        await User.connect(config.connection, config.options);
+        await Fixtures.Db.removeAllData();
     });
-  });
 
 
-  lab.after((done) => {
+    lab.after(async () => {
 
-    User.deleteMany({}, (err, count) => {
+        await Fixtures.Db.removeAllData();
 
-      User.disconnect();
-
-      done(err);
+        User.disconnect();
     });
-  });
 
 
-  lab.test('it creates a password hash combination', (done) => {
+    lab.test('it returns a new instance when create succeeds', async () => {
 
-    User.generatePasswordHash('bighouseblues', (err, result) => {
+        const user = await User.create('ren', 'bighouseblues', 'ren@stimpy.show');
 
-      Code.expect(err).to.not.exist();
-      Code.expect(result).to.be.an.object();
-      Code.expect(result.password).to.be.a.string();
-      Code.expect(result.hash).to.be.a.string();
-
-      done();
+        Code.expect(user).to.be.an.instanceOf(User);
     });
-  });
 
 
-  lab.test('it returns an error when password hash fails', (done) => {
+    lab.test('it returns undefined when finding by credentials user misses', async () => {
 
-    const realGenSalt = stub.bcrypt.genSalt;
-    stub.bcrypt.genSalt = function (rounds, callback) {
+        const user = await User.findByCredentials('steve', '123456');
 
-      callback(Error('bcrypt failed'));
-    };
-
-    User.generatePasswordHash('bighouseblues', (err, result) => {
-
-      Code.expect(err).to.be.an.object();
-      Code.expect(result).to.not.exist();
-
-      stub.bcrypt.genSalt = realGenSalt;
-
-      done();
+        Code.expect(user).to.be.undefined();
     });
-  });
 
 
-  lab.test('it returns a new instance when create succeeds', (done) => {
+    lab.test('it returns undefined when finding by credentials user hits and password match misses', async () => {
 
-    User.create('ren', 'bighouseblues', 'ren@stimpy.show', 'ren house', (err, result) => {
+        const user = await User.findByCredentials('ren', '123456');
 
-      Code.expect(err).to.not.exist();
-      Code.expect(result).to.be.an.instanceOf(User);
-
-      done();
+        Code.expect(user).to.be.undefined();
     });
-  });
 
 
-  lab.test('it returns an error when create fails', (done) => {
+    lab.test('it returns an instance when finding by credentials user hits and password match hits', async () => {
 
-    const realInsertOne = User.insertOne;
-    User.insertOne = function () {
+        const withUsername = await User.findByCredentials('ren', 'bighouseblues');
 
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
+        Code.expect(withUsername).to.be.an.instanceOf(User);
 
-      callback(Error('insert failed'));
-    };
+        const withEmail = await User.findByCredentials('ren@stimpy.show', 'bighouseblues');
 
-    User.create('ren', 'bighouseblues', 'ren@stimpy.show', 'ren house', (err, result) => {
-
-      Code.expect(err).to.be.an.object();
-      Code.expect(result).to.not.exist();
-
-      User.insertOne = realInsertOne;
-
-      done();
+        Code.expect(withEmail).to.be.an.instanceOf(User);
     });
-  });
 
 
-  lab.test('it returns a result when finding by login', (done) => {
+    lab.test('it returns an instance when finding by email', async () => {
 
-    Async.auto({
-      user: function (cb) {
+        const user = await User.findByEmail('ren@stimpy.show');
 
-        User.create('stimpy', 'thebigshot', 'stimpy@ren.show', 'ren house', cb);
-      },
-      username: ['user', function (results, cb) {
-
-        User.findByCredentials(results.user.username, results.user.password, cb);
-      }],
-      email: ['user', function (results, cb) {
-
-        User.findByCredentials(results.user.email, results.user.password, cb);
-      }]
-    }, (err, results) => {
-
-      Code.expect(err).to.not.exist();
-      Code.expect(results.user).to.be.an.instanceOf(User);
-      Code.expect(results.username).to.be.an.instanceOf(User);
-      Code.expect(results.email).to.be.an.instanceOf(User);
-
-      done();
+        Code.expect(user).to.be.an.instanceOf(User);
     });
-  });
 
 
-  lab.test('it returns nothing for find by credentials when password match fails', (done) => {
+    lab.test('it returns an instance when finding by username', async () => {
 
-    const realFindOne = User.findOne;
-    User.findOne = function () {
+        const user = await User.findByUsername('ren');
 
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
-
-      callback(null, { username: 'toastman', password: 'letmein' });
-    };
-
-    const realCompare = stub.bcrypt.compare;
-    stub.bcrypt.compare = function (key, source, callback) {
-
-      callback(null, false);
-    };
-
-    User.findByCredentials('toastman', 'doorislocked', (err, result) => {
-
-      Code.expect(err).to.not.exist();
-      Code.expect(result).to.not.exist();
-
-      User.findOne = realFindOne;
-      stub.bcrypt.compare = realCompare;
-
-      done();
+        Code.expect(user).to.be.an.instanceOf(User);
     });
-  });
 
 
-  lab.test('it returns early when finding by login misses', (done) => {
+    lab.test('it creates a password hash combination', async () => {
 
-    const realFindOne = User.findOne;
-    User.findOne = function () {
+        const password = '3l1t3f00&&b4r';
+        const result = await User.generatePasswordHash(password);
 
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
-
-      callback();
-    };
-
-    User.findByCredentials('stimpy', 'dog', (err, result) => {
-
-      Code.expect(err).to.not.exist();
-      Code.expect(result).to.not.exist();
-
-      User.findOne = realFindOne;
-
-      done();
+        Code.expect(result).to.be.an.object();
+        Code.expect(result.password).to.equal(password);
+        Code.expect(result.hash).to.be.a.string();
     });
-  });
 
 
-  lab.test('it returns an error when finding by login fails', (done) => {
+    lab.test('it returns boolean values when checking if a user can play roles', async () => {
 
-    const realFindOne = User.findOne;
-    User.findOne = function () {
+        let user;
 
-      const args = Array.prototype.slice.call(arguments);
-      const callback = args.pop();
-
-      callback(Error('find one failed'));
-    };
-
-    User.findByCredentials('stimpy', 'dog', (err, result) => {
-
-      Code.expect(err).to.be.an.object();
-      Code.expect(result).to.not.exist();
-
-      User.findOne = realFindOne;
-
-      done();
-    });
-  });
-
-
-  lab.test('it returns a result when finding by username', (done) => {
-
-    Async.auto({
-      user: function (cb) {
-
-        User.create('horseman', 'eathay', 'horse@man.show', 'ren house', (err, result) => {
-
-          Code.expect(err).to.not.exist();
-          Code.expect(result).to.be.an.instanceOf(User);
-
-          cb(null, result);
+        user = await User.findByUsername('ren');
+        user = await User.findByIdAndUpdate(user._id, {
+            $set: {
+                roles: {
+                    account: {
+                        id: '555555555555555555555555',
+                        name: 'Ren Hoek'
+                    }
+                }
+            }
         });
-      }
-    }, (err, results) => {
 
-      if (err) {
-        return done(err);
-      }
-
-      const username = results.user.username;
-
-      User.findByUsername(username, (err, result) => {
-
-        Code.expect(err).to.not.exist();
-        Code.expect(result).to.be.an.instanceOf(User);
-
-        done();
-      });
-    });
-  });
-
-  lab.test('it returns a zero if user has no roles', (done) => {
-
-    const role = User.highestRole({});
-
-    Code.expect(role).to.equal(0);
-    done();
-
-  });
-
-  lab.test('it returns a zero if user has no roles', (done) => {
-
-    const role = User.highestRole({
-      analyst: true
+        Code.expect(user.canPlayRole('admin')).to.equal(false);
+        Code.expect(user.canPlayRole('account')).to.equal(true);
     });
 
-    Code.expect(role).to.equal(1);
-    done();
 
-  });
+    lab.test('it hydrates roles when both admin and account are missing', async () => {
 
-  lab.test('it returns a zero if user has no roles', (done) => {
+        let user;
 
-    const role = User.highestRole({
-      clinician: {}
+        user = await User.findByUsername('ren');
+        user = await User.findByIdAndUpdate(user._id, {
+            $set: {
+                roles: {}
+            }
+        });
+
+        await user.hydrateRoles();
+
+        Code.expect(user._roles).to.be.an.object();
+        Code.expect(Object.keys(user._roles)).to.have.length(0);
     });
 
-    Code.expect(role).to.equal(2);
-    done();
 
-  });
+    lab.test('it hydrates roles when an account role is present', async () => {
 
-  lab.test('it returns a zero if user has no roles', (done) => {
+        const account = await Account.create('Run Hoek');
 
-    const role = User.highestRole({
-      researcher: true
+        let user;
+
+        user = await User.findByUsername('ren');
+        user = await User.findByIdAndUpdate(user._id, {
+            $set: {
+                roles: {
+                    account: {
+                        id: `${account._id}`,
+                        name: account.fullName()
+                    }
+                }
+            }
+        });
+
+        await user.hydrateRoles();
+
+        Code.expect(user._roles).to.be.an.object();
+        Code.expect(Object.keys(user._roles)).to.have.length(1);
+        Code.expect(user._roles.account).to.be.an.instanceOf(Account);
     });
 
-    Code.expect(role).to.equal(3);
-    done();
 
-  });
+    lab.test('it hydrates roles when an admin role is present', async () => {
 
-  lab.test('it returns a zero if user has no roles', (done) => {
+        const admin = await Admin.create('Run Hoek');
 
-    const role = User.highestRole({
-      admin: true
+        let user;
+
+        user = await User.findByUsername('ren');
+        user = await User.findByIdAndUpdate(user._id, {
+            $set: {
+                roles: {
+                    admin: {
+                        id: `${admin._id}`,
+                        name: admin.fullName()
+                    }
+                }
+            }
+        });
+
+        await user.hydrateRoles();
+
+        Code.expect(user._roles).to.be.an.object();
+        Code.expect(Object.keys(user._roles)).to.have.length(1);
+        Code.expect(user._roles.admin).to.be.an.instanceOf(Admin);
     });
 
-    Code.expect(role).to.equal(4);
-    done();
 
-  });
+    lab.test('it links and unlinks roles', async () => {
 
-  lab.test('it returns a zero if user has no roles', (done) => {
+        let user = await User.create('guineapig', 'wheel', 'wood@chips.gov');
+        const [admin, account] = await Promise.all([
+            Admin.create('Guinea Pig'),
+            Account.create('Guinea Pig')
+        ]);
 
-    const role = User.highestRole({
-      root: true
+        Code.expect(user.roles.admin).to.not.exist();
+        Code.expect(user.roles.account).to.not.exist();
+
+        user = await user.linkAdmin(`${admin._id}`, admin.fullName());
+        user = await user.linkAccount(`${account._id}`, account.fullName());
+
+        Code.expect(user.roles.admin).to.be.an.object();
+        Code.expect(user.roles.account).to.be.an.object();
+
+        user = await user.unlinkAdmin();
+        user = await user.unlinkAccount();
+
+        Code.expect(user.roles.admin).to.not.exist();
+        Code.expect(user.roles.account).to.not.exist();
     });
 
-    Code.expect(role).to.equal(5);
-    done();
 
-  });
+    lab.test('it hydrates roles and caches the results for subsequent access', async () => {
 
-  lab.test('it returns an array of PHI fields', (done) => {
+        const user = await User.findByUsername('ren');
 
-    Code.expect(User.PHI()).to.exist();
-    done();
+        await user.hydrateRoles();
 
-  });
+        Code.expect(user._roles).to.be.an.object();
+        Code.expect(Object.keys(user._roles)).to.have.length(1);
+        Code.expect(user._roles.admin).to.be.an.instanceOf(Admin);
+
+        const roles = await user.hydrateRoles();
+
+        Code.expect(user._roles).to.equal(roles);
+    });
 });

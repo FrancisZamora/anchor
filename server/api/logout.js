@@ -1,62 +1,40 @@
 'use strict';
-const Boom = require('boom');
+const Session = require('../models/session');
 
 
-const internals = {};
+const register = function (server, serverOptions) {
 
+    server.route({
+        method: 'DELETE',
+        path: '/api/logout',
+        options: {
+            tags: ['api','logout'],
+            auth: {
+                mode: 'try'
+            }
+        },
+        handler: function (request, h) {
 
-internals.applyRoutes = function (server, next) {
+            const credentials = request.auth.credentials;
 
-  const Session = server.plugins['hicsail-hapi-mongo-models'].Session;
+            if (!credentials) {
+                return { message: 'Success.' };
+            }
 
+            Session.findByIdAndDelete(credentials.session._id);
 
-  server.route({
-    method: 'DELETE',
-    path: '/logout',
-    config: {
-      auth: {
-        mode: 'try',
-        strategies: ['simple', 'jwt', 'session']
-      },
-      plugins: {
-        'hapi-auth-cookie': {
-          redirectTo: false
+            return { message: 'Success.' };
         }
-      }
-    },
-    handler: function (request, reply) {
-
-      const credentials = request.auth.credentials || { session: {} };
-      const session = credentials.session;
-
-      Session.findByIdAndDelete(session._id, (err, sessionDoc) => {
-
-        if (err) {
-          return reply(err);
-        }
-
-        if (!sessionDoc) {
-          return reply(Boom.notFound('Document not found.'));
-        }
-
-        reply({ message: 'Success.' });
-      });
-    }
-  });
-
-
-  next();
+    });
 };
 
 
-exports.register = function (server, options, next) {
-
-  server.dependency(['auth', 'hicsail-hapi-mongo-models'], internals.applyRoutes);
-
-  next();
-};
-
-
-exports.register.attributes = {
-  name: 'logout'
+module.exports = {
+    name: 'api-logout',
+    dependencies: [
+        'auth',
+        'hapi-auth-basic',
+        'hapi-mongo-models'
+    ],
+    register
 };

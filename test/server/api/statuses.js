@@ -5,15 +5,13 @@ const Fixtures = require('../fixtures');
 const Hapi = require('hapi');
 const Lab = require('lab');
 const Manifest = require('../../../manifest');
-const Session = require('../../../server/models/session');
-const Sessions = require('../../../server/api/sessions');
-const User = require('../../../server/models/user');
+const Status = require('../../../server/models/status');
+const Statuses = require('../../../server/api/statuses');
 
 
 const lab = exports.lab = Lab.script();
 let server;
 let rootCredentials;
-let rootSession;
 
 
 lab.before(async () => {
@@ -21,7 +19,7 @@ lab.before(async () => {
     server = Hapi.Server();
 
     const plugins = Manifest.get('/register/plugins')
-        .filter((entry) => Sessions.dependencies.includes(entry.plugin))
+        .filter((entry) => Statuses.dependencies.includes(entry.plugin))
         .map((entry) => {
 
             entry.plugin = require(entry.plugin);
@@ -30,15 +28,13 @@ lab.before(async () => {
         });
 
     plugins.push(Auth);
-    plugins.push(Sessions);
+    plugins.push(Statuses);
 
     await server.register(plugins);
     await server.start();
     await Fixtures.Db.removeAllData();
 
     rootCredentials = await Fixtures.Creds.createRootAdminUser();
-
-    rootSession = rootCredentials.session;
 });
 
 
@@ -49,7 +45,7 @@ lab.after(async () => {
 });
 
 
-lab.experiment('GET /api/sessions', () => {
+lab.experiment('GET /api/statuses', () => {
 
     let request;
 
@@ -58,7 +54,7 @@ lab.experiment('GET /api/sessions', () => {
 
         request = {
             method: 'GET',
-            url: '/api/sessions',
+            url: '/api/statuses',
             credentials: rootCredentials
         };
     });
@@ -76,7 +72,39 @@ lab.experiment('GET /api/sessions', () => {
 });
 
 
-lab.experiment('GET /api/sessions/{id}', () => {
+lab.experiment('POST /api/statuses', () => {
+
+    let request;
+
+
+    lab.beforeEach(() => {
+
+        request = {
+            method: 'POST',
+            url: '/api/statuses',
+            credentials: rootCredentials
+        };
+    });
+
+
+    lab.test('it returns HTTP 200 when all is well', async () => {
+
+        request.payload = {
+            name: 'Happy',
+            pivot: 'Account'
+        };
+
+        const response = await server.inject(request);
+
+        Code.expect(response.statusCode).to.equal(200);
+        Code.expect(response.result).to.be.and.object();
+        Code.expect(response.result.name).to.be.equal('Happy');
+        Code.expect(response.result.pivot).to.be.equal('Account');
+    });
+});
+
+
+lab.experiment('GET /api/statuses/{id}', () => {
 
     let request;
 
@@ -85,13 +113,103 @@ lab.experiment('GET /api/sessions/{id}', () => {
 
         request = {
             method: 'GET',
-            url: '/api/sessions/{id}',
+            url: '/api/statuses/{id}',
             credentials: rootCredentials
         };
     });
 
 
-    lab.test('it returns HTTP 404 when `Session.findById` misses', async () => {
+    lab.test('it returns HTTP 404 when `Status.findById` misses', async () => {
+
+        request.url = request.url.replace(/{id}/, 'missing-status');
+
+        const response = await server.inject(request);
+
+        Code.expect(response.statusCode).to.equal(404);
+        Code.expect(response.result.message).to.match(/not found/i);
+    });
+
+
+    lab.test('it returns HTTP 200 when all is well', async () => {
+
+        const status = await Status.create('Account', 'Sad');
+
+        request.url = request.url.replace(/{id}/, status._id);
+
+        const response = await server.inject(request);
+
+        Code.expect(response.statusCode).to.equal(200);
+        Code.expect(response.result).to.be.an.object();
+        Code.expect(response.result.name).to.equal('Sad');
+        Code.expect(response.result.pivot).to.equal('Account');
+    });
+});
+
+
+lab.experiment('PUT /api/statuses/{id}', () => {
+
+    let request;
+
+
+    lab.beforeEach(() => {
+
+        request = {
+            method: 'PUT',
+            url: '/api/statuses/{id}',
+            credentials: rootCredentials
+        };
+    });
+
+
+    lab.test('it returns HTTP 404 when `Status.findByIdAndUpdate` misses', async () => {
+
+        request.url = request.url.replace(/{id}/, 'account-emojiface');
+        request.payload =  {
+            name: 'Wrecking Crew'
+        };
+
+        const response = await server.inject(request);
+
+        Code.expect(response.statusCode).to.equal(404);
+        Code.expect(response.result.message).to.match(/not found/i);
+    });
+
+
+    lab.test('it returns HTTP 200 when all is well', async () => {
+
+        const status = await Status.create('Admin', 'Cold');
+
+        request.url = request.url.replace(/{id}/, status._id);
+        request.payload =  {
+            name: 'Hot'
+        };
+
+        const response = await server.inject(request);
+
+        Code.expect(response.statusCode).to.equal(200);
+        Code.expect(response.result).to.be.an.object();
+        Code.expect(response.result.name).to.equal('Hot');
+        Code.expect(response.result.pivot).to.equal('Admin');
+    });
+});
+
+
+lab.experiment('DELETE /api/statuses/{id}', () => {
+
+    let request;
+
+
+    lab.beforeEach(() => {
+
+        request = {
+            method: 'DELETE',
+            url: '/api/statuses/{id}',
+            credentials: rootCredentials
+        };
+    });
+
+
+    lab.test('it returns HTTP 404 when `Status.findByIdAndDelete` misses', async () => {
 
         request.url = request.url.replace(/{id}/, '555555555555555555555555');
 
@@ -104,118 +222,9 @@ lab.experiment('GET /api/sessions/{id}', () => {
 
     lab.test('it returns HTTP 200 when all is well', async () => {
 
-        const user = await User.create('darcie', 'uplate', 'darcie@late.night');
-        const session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
+        const status = await Status.create('Account', 'Above');
 
-        request.url = request.url.replace(/{id}/, session._id);
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result).to.be.an.object();
-        Code.expect(response.result.userId).to.equal(`${user._id}`);
-    });
-});
-
-
-lab.experiment('DELETE /api/sessions/{id}', () => {
-
-    let request;
-
-
-    lab.beforeEach(() => {
-
-        request = {
-            method: 'DELETE',
-            url: '/api/sessions/{id}',
-            credentials: rootCredentials
-        };
-    });
-
-
-    lab.test('it returns HTTP 404 when `Session.findByIdAndDelete` misses', async () => {
-
-        request.url = request.url.replace(/{id}/, '555555555555555555555555');
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(404);
-        Code.expect(response.result.message).to.match(/not found/i);
-    });
-
-
-    lab.test('it returns HTTP 200 when all is well', async () => {
-
-        const user = await User.create('aldon', 'thirsty', 'aldon@late.night');
-        const session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
-
-        request.url = request.url.replace(/{id}/, session._id);
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result).to.be.an.object();
-        Code.expect(response.result.message).to.match(/success/i);
-    });
-});
-
-
-lab.experiment('GET /api/sessions/my', () => {
-
-    let request;
-
-
-    lab.beforeEach(() => {
-
-        request = {
-            method: 'GET',
-            url: '/api/sessions/my',
-            credentials: rootCredentials
-        };
-    });
-
-    lab.test('it returns HTTP 200 when all is well', async () => {
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result).to.be.an.array();
-        Code.expect(response.result.length).to.equal(1);
-    });
-});
-
-
-lab.experiment('DELETE /api/sessions/my/{id}', () => {
-
-    let request;
-
-
-    lab.beforeEach(() => {
-
-        request = {
-            method: 'DELETE',
-            url: '/api/sessions/my/{id}',
-            credentials: rootCredentials
-        };
-    });
-
-
-    lab.test('it returns HTTP 400 when tryint to destroy current session', async () => {
-
-        request.url = request.url.replace(/{id}/, rootSession._id);
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(400);
-        Code.expect(response.result.message).to.match(/current session/i);
-    });
-
-
-    lab.test('it returns HTTP 200 when all is well', async () => {
-
-        const session = await Session.create(rootSession.userId, '127.0.0.2', 'Lab');
-
-        request.url = request.url.replace(/{id}/, session._id);
+        request.url = request.url.replace(/{id}/, status._id);
 
         const response = await server.inject(request);
 

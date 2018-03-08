@@ -1,193 +1,206 @@
 'use strict';
-const Async = require('async');
+const Account = require('./account');
+const Admin = require('./admin');
+const Assert = require('assert');
 const Bcrypt = require('bcrypt');
-const Clinician = require('./clinician');
 const Joi = require('joi');
-const MongoModels = require('hicsail-mongo-models');
+const MongoModels = require('mongo-models');
+const NewDate = require('joistick/new-date');
+
+
+const schema = Joi.object({
+    _id: Joi.object(),
+    email: Joi.string().email().lowercase().required(),
+    isActive: Joi.boolean().default(true),
+    password: Joi.string(),
+    resetPassword: Joi.object({
+        token: Joi.string().required(),
+        expires: Joi.date().required()
+    }),
+    roles: Joi.object({
+        admin: Joi.object({
+            id: Joi.string().required(),
+            name: Joi.string().required()
+        }),
+        account: Joi.object({
+            id: Joi.string().required(),
+            name: Joi.string().required()
+        })
+    }).default(),
+    timeCreated: Joi.date().default(NewDate(), 'time of creation'),
+    username: Joi.string().token().lowercase().required()
+});
 
 
 class User extends MongoModels {
-  static generatePasswordHash(password, callback) {
+    static async create(username, password, email) {
 
-    Async.auto({
-      salt: function (done) {
+        Assert.ok(username, 'Missing username argument.');
+        Assert.ok(password, 'Missing password argument.');
+        Assert.ok(email, 'Missing email argument.');
 
-        Bcrypt.genSalt(10, done);
-      },
-      hash: ['salt', function (results, done) {
+        const passwordHash = await this.generatePasswordHash(password);
+        const document = new this({
+            email,
+            isActive: true,
+            password: passwordHash.hash,
+            username
+        });
+        const users = await this.insertOne(document);
 
-        Bcrypt.hash(password, results.salt, done);
-      }]
-    }, (err, results) => {
+        users[0].password = passwordHash.password;
 
-      if (err) {
-        return callback(err);
-      }
+        return users[0];
+    }
 
-      callback(null, {
-        password,
-        hash: results.hash
-      });
-    });
-  }
+    static async findByCredentials(username, password) {
 
-  static create(username, password, email, name, callback) {
+        Assert.ok(username, 'Missing username argument.');
+        Assert.ok(password, 'Missing password argument.');
 
-    const self = this;
-
-    Async.auto({
-      passwordHash: this.generatePasswordHash.bind(this, password),
-      newUser: ['passwordHash', function (results, done) {
-
-        const document = {
-          isActive: true,
-          inStudy: true,
-          username: username.toLowerCase(),
-          password: results.passwordHash.hash,
-          email: email.toLowerCase(),
-          name,
-          roles: {},
-          studyID: null,
-          timeCreated: new Date()
-        };
-
-        self.insertOne(document, done);
-      }]
-    }, (err, results) => {
-
-      if (err) {
-        return callback(err);
-      }
-
-      results.newUser[0].password = results.passwordHash.password;
-
-      callback(null, results.newUser[0]);
-    });
-  }
-
-  static findByCredentials(username, password, callback) {
-
-    const self = this;
-
-    Async.auto({
-      user: function (done) {
-
-        const query = {
-          isActive: true
-        };
+        const query = { isActive: true };
 
         if (username.indexOf('@') > -1) {
-          query.email = username.toLowerCase();
+            query.email = username.toLowerCase();
         }
         else {
-          query.username = username.toLowerCase();
+            query.username = username.toLowerCase();
         }
 
-        self.findOne(query, done);
-      },
-      passwordMatch: ['user', function (results, done) {
+        const user = await this.findOne(query);
 
-        if (!results.user) {
-          return done(null, false);
+        if (!user) {
+            return;
         }
 
-        const source = results.user.password;
-        Bcrypt.compare(password, source, done);
-      }]
-    }, (err, results) => {
+        const passwordMatch = await Bcrypt.compare(password, user.password);
 
-      if (err) {
-        return callback(err);
-      }
-
-      if (results.passwordMatch) {
-        return callback(null, results.user);
-      }
-
-      callback();
-    });
-  }
-
-  static findByUsername(username, callback) {
-
-    const query = { username: username.toLowerCase() };
-
-    this.findOne(query, callback);
-  }
-
-  static highestRole(roles) {
-
-    if (roles.root) {
-      return 5;
+        if (passwordMatch) {
+            return user;
+        }
     }
-    else if (roles.admin) {
-      return 4;
+
+    static findByEmail(email) {
+
+        Assert.ok(email, 'Missing email argument.');
+
+        const query = { email: email.toLowerCase() };
+
+        return this.findOne(query);
     }
-    else if (roles.researcher) {
-      return 3;
+
+    static findByUsername(username) {
+
+        Assert.ok(username, 'Missing username argument.');
+
+        const query = { username: username.toLowerCase() };
+
+        return this.findOne(query);
     }
-    else if (roles.clinician) {
-      return 2;
+
+    static async generatePasswordHash(password) {
+
+        Assert.ok(password, 'Missing password argument.');
+
+        const salt = await Bcrypt.genSalt(10);
+        const hash = await Bcrypt.hash(password, salt);
+
+        return { password, hash };
     }
-    else if (roles.analyst) {
-      return 1;
+
+    constructor(attrs) {
+
+        super(attrs);
+
+        Object.defineProperty(this, '_roles', {
+            writable: true,
+            enumerable: false
+        });
     }
-    return 0;
-  }
 
-  constructor(attrs) {
+    canPlayRole(role) {
 
-    super(attrs);
+        Assert.ok(role, 'Missing role argument.');
 
-    Object.defineProperty(this, '_roles', {
-      writable: true,
-      enumerable: false
-    });
-  }
+        return this.roles.hasOwnProperty(role);
+    }
 
-  static PHI() {
+    async hydrateRoles() {
 
-    return ['username', 'password', 'name', 'email'];
-  }
+        if (this._roles) {
+            return this._roles;
+        }
+
+        this._roles = {};
+
+        if (this.roles.account) {
+            this._roles.account = await Account.findById(this.roles.account.id);
+        }
+
+        if (this.roles.admin) {
+            this._roles.admin = await Admin.findById(this.roles.admin.id);
+        }
+
+        return this._roles;
+    }
+
+    async linkAccount(id, name) {
+
+        Assert.ok(id, 'Missing id argument.');
+        Assert.ok(name, 'Missing name argument.');
+
+        const update = {
+            $set: {
+                'roles.account': { id, name }
+            }
+        };
+
+        return await User.findByIdAndUpdate(this._id, update);
+    }
+
+    async linkAdmin(id, name) {
+
+        Assert.ok(id, 'Missing id argument.');
+        Assert.ok(name, 'Missing name argument.');
+
+        const update = {
+            $set: {
+                'roles.admin': { id, name }
+            }
+        };
+
+        return await User.findByIdAndUpdate(this._id, update);
+    }
+
+    async unlinkAccount() {
+
+        const update = {
+            $unset: {
+                'roles.account': undefined
+            }
+        };
+
+        return await User.findByIdAndUpdate(this._id, update);
+    }
+
+    async unlinkAdmin() {
+
+        const update = {
+            $unset: {
+                'roles.admin': undefined
+            }
+        };
+
+        return await User.findByIdAndUpdate(this._id, update);
+    }
 }
 
 
-User.collection = 'users';
-
-
-User.schema = Joi.object({
-  _id: Joi.object(),
-  isActive: Joi.boolean().default(true),
-  username: Joi.string().token().lowercase().required(),
-  password: Joi.string(),
-  name: Joi.string(),
-  inStudy: Joi.boolean().default(true),
-  email: Joi.string().email().lowercase().required(),
-  roles: Joi.object({
-    clinician: Clinician.schema,
-    analyst: Joi.boolean().required(),
-    researcher: Joi.boolean().required(),
-    admin: Joi.boolean().required(),
-    root: Joi.boolean().required()
-  }),
-  resetPassword: Joi.object({
-    token: Joi.string().required(),
-    expires: Joi.date().required()
-  }),
-  timeCreated: Joi.date()
-});
-
-User.payload = Joi.object({
-  username: Joi.string().token().lowercase().invalid('root').required(),
-  password: Joi.string().required(),
-  email: Joi.string().email().lowercase().required(),
-  name: Joi.string().required()
-});
-
-
+User.collectionName = 'users';
+User.schema = schema;
 User.indexes = [
-  { key: { username: 1, unique: 1 } },
-  { key: { email: 1, unique: 1 } }
+    { key: { username: 1 }, unique: true },
+    { key: { email: 1 }, unique: true }
 ];
 
 
