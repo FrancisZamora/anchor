@@ -1,6 +1,5 @@
 const Boom = require('boom');
 const Joi = require('joi');
-const Preware = require('../preware');
 const Session = require('../models/session');
 
 
@@ -12,7 +11,8 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: 'admin'
+        scope: 'admin',
+        strategies: ['simple','session']
       },
       validate: {
         query: {
@@ -20,10 +20,7 @@ const register = function (server, serverOptions) {
           limit: Joi.number().default(20),
           page: Joi.number().default(1)
         }
-      },
-      pre: [
-        Preware.requireAdminGroup('root')
-      ]
+      }
     },
     handler: async function (request, h) {
 
@@ -45,11 +42,9 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: 'admin'
-      },
-      pre: [
-        Preware.requireAdminGroup('root')
-      ]
+        scope: 'admin',
+        strategies: ['simple','session']
+      }
     },
     handler: async function (request, h) {
 
@@ -70,11 +65,9 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: 'admin'
-      },
-      pre: [
-        Preware.requireAdminGroup('root')
-      ]
+        scope: 'admin',
+        strategies: ['simple','session']
+      }
     },
     handler: async function (request, h) {
 
@@ -95,7 +88,8 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: ['admin', 'account']
+        scope: ['admin', 'account'],
+        strategies: ['simple','session']
       }
     },
     handler: async function (request, h) {
@@ -140,6 +134,7 @@ module.exports = {
   dependencies: [
     'auth',
     'hapi-auth-basic',
+    'hapi-auth-cookie',
     'hapi-mongo-models'
   ],
   register

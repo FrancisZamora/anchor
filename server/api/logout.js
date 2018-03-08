@@ -9,7 +9,8 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','logout'],
       auth: {
-        mode: 'try'
+        mode: 'try',
+        strategies: ['simple','session']
       }
     },
     handler: function (request, h) {
@@ -33,6 +34,7 @@ module.exports = {
   dependencies: [
     'auth',
     'hapi-auth-basic',
+    'hapi-auth-cookie',
     'hapi-mongo-models'
   ],
   register

@@ -173,7 +173,7 @@ lab.experiment('GET /api/users/{id}', () => {
 
   lab.test('it returns HTTP 200 when all is well', async () => {
 
-    const user = await User.create('mrcolbert', 'colbert123', 'mr@colbert.baz');
+    const user = await User.create('mrcolbert', 'colbert123', 'mr@colbert.baz', 'username');
 
     request.url = request.url.replace(/{id}/, user._id);
 
@@ -251,7 +251,7 @@ lab.experiment('PUT /api/users/{id}', () => {
 
   lab.test('it returns HTTP 200 when all is well', async () => {
 
-    const user = await User.create('finally', 'gue55', 'finally@made.it');
+    const user = await User.create('finally', 'gue55', 'finally@made.it', 'username');
 
     request.url = request.url.replace(/{id}/, user._id);
     request.payload = {
@@ -298,7 +298,7 @@ lab.experiment('DELETE /api/users/{id}', () => {
 
   lab.test('it returns HTTP 200 when all is well', async () => {
 
-    const user = await User.create('deleteme', '0000', 'delete@me.please');
+    const user = await User.create('deleteme', '0000', 'delete@me.please', 'username');
 
     request.url = request.url.replace(/{id}/, user._id);
 
@@ -342,7 +342,7 @@ lab.experiment('PUT /api/users/{id}/password', () => {
 
   lab.test('it returns HTTP 200 when all is well', async () => {
 
-    const user = await User.create('finally', 'gue55', 'finally@made.it');
+    const user = await User.create('finally', 'gue55', 'finally@made.it', 'username');
 
     request.url = request.url.replace(/{id}/, user._id);
     request.payload = {

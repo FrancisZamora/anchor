@@ -11,7 +11,7 @@ const User = require('../../../server/models/user');
 
 const lab = exports.lab = Lab.script();
 let server;
-let rootCredentials;
+let rootUser;
 let rootSession;
 
 
@@ -35,9 +35,9 @@ lab.before(async () => {
   await server.start();
   await Fixtures.Db.removeAllData();
 
-  rootCredentials = await Fixtures.Creds.createRootAdminUser();
+  rootUser = await Fixtures.Creds.createRootUser();
 
-  rootSession = rootCredentials.session;
+  rootSession = rootUser.session;
 });
 
 
@@ -58,7 +58,7 @@ lab.experiment('GET /api/sessions', () => {
     request = {
       method: 'GET',
       url: '/api/sessions',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -85,7 +85,7 @@ lab.experiment('GET /api/sessions/{id}', () => {
     request = {
       method: 'GET',
       url: '/api/sessions/{id}',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -103,7 +103,7 @@ lab.experiment('GET /api/sessions/{id}', () => {
 
   lab.test('it returns HTTP 200 when all is well', async () => {
 
-    const user = await User.create('darcie', 'uplate', 'darcie@late.night');
+    const user = await User.create('darcie', 'uplate', 'darcie@late.night', 'username');
     const session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
 
     request.url = request.url.replace(/{id}/, session._id);
@@ -127,7 +127,7 @@ lab.experiment('DELETE /api/sessions/{id}', () => {
     request = {
       method: 'DELETE',
       url: '/api/sessions/{id}',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -145,7 +145,7 @@ lab.experiment('DELETE /api/sessions/{id}', () => {
 
   lab.test('it returns HTTP 200 when all is well', async () => {
 
-    const user = await User.create('aldon', 'thirsty', 'aldon@late.night');
+    const user = await User.create('aldon', 'thirsty', 'aldon@late.night', 'username');
     const session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
 
     request.url = request.url.replace(/{id}/, session._id);
@@ -169,7 +169,7 @@ lab.experiment('GET /api/sessions/my', () => {
     request = {
       method: 'GET',
       url: '/api/sessions/my',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -194,7 +194,7 @@ lab.experiment('DELETE /api/sessions/my/{id}', () => {
     request = {
       method: 'DELETE',
       url: '/api/sessions/my/{id}',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 

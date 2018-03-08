@@ -59,9 +59,6 @@ const manifest = {
         plugin: 'hapi-auth-cookie'
       },
       {
-        plugin: 'hapi-auth-jwt2'
-      },
-      {
         plugin: 'hapi-remote-address'
       },
       {
@@ -74,7 +71,7 @@ const manifest = {
         plugin:'hapi-swagger',
         options: {
           info: {
-            title: 'Frame API Documentation',
+            title: 'Anchor API Documentation',
             version: Package.version
           },
           grouping: 'tags',

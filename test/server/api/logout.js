@@ -56,18 +56,17 @@ lab.experiment('DELETE /api/logout', () => {
   });
 
 
-  lab.test('it returns HTTP 200 when credentials are missing', async () => {
+  lab.test('it returns HTTP 302 when credentials are missing', async () => {
 
     const response = await server.inject(request);
 
-    Code.expect(response.statusCode).to.equal(200);
-    Code.expect(response.result.message).to.match(/success/i);
+    Code.expect(response.statusCode).to.equal(302);
   });
 
 
   lab.test('it returns HTTP 200 when credentials are present', async () => {
 
-    const user = await User.create('ren', 'baddog', 'ren@stimpy.show');
+    const user = await User.create('ren', 'baddog', 'ren@stimpy.show', 'username');
     const session = await Session.create('ren', 'baddog', 'ren@stimpy.show');
 
     request.credentials = {

@@ -42,7 +42,7 @@ const config = {
     },
     autoIndex: true
   },
-  authSecret: 'RiDxb9kW5YEu4dospW7gZZSCjc9sUC9h',
+  cookieSecret: 'RiDxb9kW5YEu4dospW7gZZSCjc9sUC9h',
   nodemailer: {
     host: 'smtp.gmail.com',
     port: 465,

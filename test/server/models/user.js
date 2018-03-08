@@ -89,22 +89,4 @@ lab.experiment('User Model', () => {
   });
 
 
-  lab.test('it hydrates roles when all roles are missing', async () => {
-
-    let user;
-
-    user = await User.findByUsername('ren');
-    user = await User.findByIdAndUpdate(user._id, {
-      $set: {
-        roles: {}
-      }
-    });
-
-    await user.hydrateRoles();
-
-    Code.expect(user._roles).to.be.an.object();
-    Code.expect(Object.keys(user._roles)).to.have.length(0);
-  });
-
-
 });

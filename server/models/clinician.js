@@ -2,7 +2,7 @@ const Joi = require('joi');
 const MongoModels = require('mongo-models');
 
 const schema = Joi.object({
-  userAccess: Joi.array().items(Joi.object()).required()
+  userAccess: Joi.array().items(Joi.object())
 });
 
 class Clinician {

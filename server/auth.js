@@ -40,7 +40,7 @@ const register = function (server, options) {
 
 
   server.auth.strategy('session', 'cookie', {
-    password: Config.get('/authSecret'),
+    password: Config.get('/cookieSecret'),
     cookie: 'AuthCookie',
     isSecure: false,
     clearInvalid: true,
@@ -48,7 +48,7 @@ const register = function (server, options) {
     ttl: 60000 * 30, //30 Minutes
     redirectTo: '/login',
     appendNext: 'returnUrl',
-    validate: async function (request, sessionId, key, h) {
+    validateFunc: async function (request, sessionId, key, h) {
 
       const session = await Session.findByCredentials(sessionId, key);
 
@@ -79,8 +79,6 @@ const register = function (server, options) {
       return { credentials, isValid: true };
     }
   });
-
-  server.auth.default('session');
 };
 
 
@@ -89,7 +87,6 @@ module.exports = {
   dependencies: [
     'hapi-auth-basic',
     'hapi-auth-cookie',
-    'hapi-auth-jwt2',
     'hapi-mongo-models'
   ],
   register
