@@ -1,42 +1,42 @@
-'use strict';
+
 const Boom = require('boom');
 
 
 class Preware {
-    static requireAdminGroup(groups) {
+  static requireAdminGroup(groups) {
 
-        return {
-            assign: 'ensureAdminGroup',
-            method: function (request, h) {
+    return {
+      assign: 'ensureAdminGroup',
+      method: function (request, h) {
 
-                if (Object.prototype.toString.call(groups) !== '[object Array]') {
-                    groups = [groups];
-                }
+        if (Object.prototype.toString.call(groups) !== '[object Array]') {
+          groups = [groups];
+        }
 
-                const admin = request.auth.credentials.roles.admin;
-                const groupFound = groups.some((group) => admin.isMemberOf(group));
+        const admin = request.auth.credentials.roles.admin;
+        const groupFound = groups.some((group) => admin.isMemberOf(group));
 
-                if (!groupFound) {
-                    throw Boom.forbidden('Missing required group membership.');
-                }
+        if (!groupFound) {
+          throw Boom.forbidden('Missing required group membership.');
+        }
 
-                return h.continue;
-            }
-        };
+        return h.continue;
+      }
     };
+  };
 }
 
 
 Preware.requireNotRootUser = {
-    assign: 'requireNotRootUser',
-    method: function (request, h) {
+  assign: 'requireNotRootUser',
+  method: function (request, h) {
 
-        if (request.auth.credentials.user.username === 'root') {
-            throw Boom.forbidden('Not permitted for the root user.');
-        }
-
-        return h.continue;
+    if (request.auth.credentials.user.username === 'root') {
+      throw Boom.forbidden('Not permitted for the root user.');
     }
+
+    return h.continue;
+  }
 };
 
 

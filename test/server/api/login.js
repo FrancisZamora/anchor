@@ -1,4 +1,4 @@
-'use strict';
+
 const AuthAttempt = require('../../../server/models/auth-attempt');
 const Code = require('code');
 const Fixtures = require('../fixtures');
@@ -16,220 +16,220 @@ let server;
 
 lab.before(async () => {
 
-    server = Hapi.Server();
+  server = Hapi.Server();
 
-    const plugins = Manifest.get('/register/plugins')
-        .filter((entry) => Login.dependencies.includes(entry.plugin))
-        .map((entry) => {
+  const plugins = Manifest.get('/register/plugins')
+    .filter((entry) => Login.dependencies.includes(entry.plugin))
+    .map((entry) => {
 
-            entry.plugin = require(entry.plugin);
+      entry.plugin = require(entry.plugin);
 
-            return entry;
-        });
+      return entry;
+    });
 
-    plugins.push(Login);
+  plugins.push(Login);
 
-    await server.register(plugins);
-    await server.start();
-    await Fixtures.Db.removeAllData();
+  await server.register(plugins);
+  await server.start();
+  await Fixtures.Db.removeAllData();
 
-    await User.create('ren', 'baddog', 'ren@stimpy.show');
+  await User.create('ren', 'baddog', 'ren@stimpy.show');
 });
 
 
 lab.after(async () => {
 
-    await Fixtures.Db.removeAllData();
-    await server.stop();
+  await Fixtures.Db.removeAllData();
+  await server.stop();
 });
 
 
 lab.experiment('POST /api/login', () => {
 
-    const AuthAttempt_abuseDetected = AuthAttempt.abuseDetected;
-    const User_findByCredentials = User.findByCredentials;
-    let request;
+  const AuthAttempt_abuseDetected = AuthAttempt.abuseDetected;
+  const User_findByCredentials = User.findByCredentials;
+  let request;
 
 
-    lab.beforeEach(() => {
+  lab.beforeEach(() => {
 
-        request = {
-            method: 'POST',
-            url: '/api/login',
-            payload: {
-                username: 'ren',
-                password: 'baddog'
-            }
-        };
-    });
-
-
-    lab.afterEach(() => {
-
-        AuthAttempt.abuseDetected = AuthAttempt_abuseDetected;
-        User.findByCredentials = User_findByCredentials;
-    });
+    request = {
+      method: 'POST',
+      url: '/api/login',
+      payload: {
+        username: 'ren',
+        password: 'baddog'
+      }
+    };
+  });
 
 
-    lab.test('it returns HTTP 400 when login abuse is detected', async () => {
+  lab.afterEach(() => {
 
-        AuthAttempt.abuseDetected = () => true;
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(400);
-        Code.expect(response.result.message)
-            .to.match(/maximum number of auth attempts reached/i);
-    });
+    AuthAttempt.abuseDetected = AuthAttempt_abuseDetected;
+    User.findByCredentials = User_findByCredentials;
+  });
 
 
-    lab.test('it returns HTTP 400 when a user is not found', async () => {
+  lab.test('it returns HTTP 400 when login abuse is detected', async () => {
 
-        User.findByCredentials = () => undefined;
+    AuthAttempt.abuseDetected = () => true;
 
-        const response = await server.inject(request);
+    const response = await server.inject(request);
 
-        Code.expect(response.statusCode).to.equal(400);
-        Code.expect(response.result.message)
-            .to.match(/credentials are invalid or account is inactive/i);
-    });
+    Code.expect(response.statusCode).to.equal(400);
+    Code.expect(response.result.message)
+      .to.match(/maximum number of auth attempts reached/i);
+  });
 
 
-    lab.test('it returns HTTP 200 when all is well', async () => {
+  lab.test('it returns HTTP 400 when a user is not found', async () => {
 
-        const response = await server.inject(request);
+    User.findByCredentials = () => undefined;
 
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result).to.be.an.object();
-        Code.expect(response.result.user).to.be.an.object();
-        Code.expect(response.result.session).to.be.an.object();
-        Code.expect(response.result.authHeader).to.be.a.string();
-    });
+    const response = await server.inject(request);
+
+    Code.expect(response.statusCode).to.equal(400);
+    Code.expect(response.result.message)
+      .to.match(/credentials are invalid or account is inactive/i);
+  });
+
+
+  lab.test('it returns HTTP 200 when all is well', async () => {
+
+    const response = await server.inject(request);
+
+    Code.expect(response.statusCode).to.equal(200);
+    Code.expect(response.result).to.be.an.object();
+    Code.expect(response.result.user).to.be.an.object();
+    Code.expect(response.result.session).to.be.an.object();
+    Code.expect(response.result.authHeader).to.be.a.string();
+  });
 });
 
 
 lab.experiment('POST /api/login/forgot', () => {
 
-    const Mailer_sendEmail = Mailer.sendEmail;
-    const User_findOne = User.findOne;
-    let request;
+  const Mailer_sendEmail = Mailer.sendEmail;
+  const User_findOne = User.findOne;
+  let request;
 
 
-    lab.beforeEach(() => {
+  lab.beforeEach(() => {
 
-        request = {
-            method: 'POST',
-            url: '/api/login/forgot',
-            payload: {
-                email: 'ren@stimpy.show'
-            }
-        };
-    });
-
-
-    lab.afterEach(() => {
-
-        Mailer.sendEmail = Mailer_sendEmail;
-        User.findOne = User_findOne;
-    });
+    request = {
+      method: 'POST',
+      url: '/api/login/forgot',
+      payload: {
+        email: 'ren@stimpy.show'
+      }
+    };
+  });
 
 
-    lab.test('it returns HTTP 200 when the user query misses', async () => {
+  lab.afterEach(() => {
 
-        User.findOne = () => undefined;
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result.message).to.match(/success/i);
-    });
+    Mailer.sendEmail = Mailer_sendEmail;
+    User.findOne = User_findOne;
+  });
 
 
-    lab.test('it returns HTTP 200 when all is well', async () => {
+  lab.test('it returns HTTP 200 when the user query misses', async () => {
 
-        Mailer.sendEmail = () => undefined;
+    User.findOne = () => undefined;
 
-        const response = await server.inject(request);
+    const response = await server.inject(request);
 
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result.message).to.match(/success/i);
-    });
+    Code.expect(response.statusCode).to.equal(200);
+    Code.expect(response.result.message).to.match(/success/i);
+  });
+
+
+  lab.test('it returns HTTP 200 when all is well', async () => {
+
+    Mailer.sendEmail = () => undefined;
+
+    const response = await server.inject(request);
+
+    Code.expect(response.statusCode).to.equal(200);
+    Code.expect(response.result.message).to.match(/success/i);
+  });
 });
 
 
 lab.experiment('POST /api/login/reset', () => {
 
-    const User_findOne = User.findOne;
-    const Mailer_sendEmail = Mailer.sendEmail;
-    let request;
-    let key;
+  const User_findOne = User.findOne;
+  const Mailer_sendEmail = Mailer.sendEmail;
+  let request;
+  let key;
 
 
-    lab.before(async () => {
+  lab.before(async () => {
 
-        Mailer.sendEmail = (_, __, context) => {
+    Mailer.sendEmail = (_, __, context) => {
 
-            key = context.key;
-        };
+      key = context.key;
+    };
 
-        await server.inject({
-            method: 'POST',
-            url: '/api/login/forgot',
-            payload: {
-                email: 'ren@stimpy.show'
-            }
-        });
+    await server.inject({
+      method: 'POST',
+      url: '/api/login/forgot',
+      payload: {
+        email: 'ren@stimpy.show'
+      }
     });
+  });
 
 
-    lab.beforeEach(() => {
+  lab.beforeEach(() => {
 
-        request = {
-            method: 'POST',
-            url: '/api/login/reset',
-            payload: {
-                email: 'ren@stimpy.show',
-                key,
-                password: 'badcat'
-            }
-        };
-    });
-
-
-    lab.afterEach(() => {
-
-        Mailer.sendEmail = Mailer_sendEmail;
-        User.findOne = User_findOne;
-    });
+    request = {
+      method: 'POST',
+      url: '/api/login/reset',
+      payload: {
+        email: 'ren@stimpy.show',
+        key,
+        password: 'badcat'
+      }
+    };
+  });
 
 
-    lab.test('it returns HTTP 400 when the user query misses', async () => {
+  lab.afterEach(() => {
 
-        User.findOne = () => undefined;
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(400);
-        Code.expect(response.result.message).to.match(/invalid email or key/i);
-    });
+    Mailer.sendEmail = Mailer_sendEmail;
+    User.findOne = User_findOne;
+  });
 
 
-    lab.test('it returns HTTP 400 when the key match misses', async () => {
+  lab.test('it returns HTTP 400 when the user query misses', async () => {
 
-        request.payload.key += 'poison';
+    User.findOne = () => undefined;
 
-        const response = await server.inject(request);
+    const response = await server.inject(request);
 
-        Code.expect(response.statusCode).to.equal(400);
-        Code.expect(response.result.message).to.match(/invalid email or key/i);
-    });
+    Code.expect(response.statusCode).to.equal(400);
+    Code.expect(response.result.message).to.match(/invalid email or key/i);
+  });
 
 
-    lab.test('it returns HTTP 200 when all is well', async () => {
+  lab.test('it returns HTTP 400 when the key match misses', async () => {
 
-        const response = await server.inject(request);
+    request.payload.key += 'poison';
 
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result.message).to.match(/success/i);
-    });
+    const response = await server.inject(request);
+
+    Code.expect(response.statusCode).to.equal(400);
+    Code.expect(response.result.message).to.match(/invalid email or key/i);
+  });
+
+
+  lab.test('it returns HTTP 200 when all is well', async () => {
+
+    const response = await server.inject(request);
+
+    Code.expect(response.statusCode).to.equal(200);
+    Code.expect(response.result.message).to.match(/success/i);
+  });
 });

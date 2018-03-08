@@ -1,4 +1,4 @@
-'use strict';
+
 const AuthPlugin = require('../../../server/auth');
 const Code = require('code');
 const Fixtures = require('../fixtures');
@@ -16,70 +16,70 @@ let server;
 
 lab.before(async () => {
 
-    server = Hapi.Server();
+  server = Hapi.Server();
 
-    const plugins = Manifest.get('/register/plugins')
-        .filter((entry) => Logout.dependencies.includes(entry.plugin))
-        .map((entry) => {
+  const plugins = Manifest.get('/register/plugins')
+    .filter((entry) => Logout.dependencies.includes(entry.plugin))
+    .map((entry) => {
 
-            entry.plugin = require(entry.plugin);
+      entry.plugin = require(entry.plugin);
 
-            return entry;
-        });
+      return entry;
+    });
 
-    plugins.push(AuthPlugin);
-    plugins.push(Logout);
+  plugins.push(AuthPlugin);
+  plugins.push(Logout);
 
-    await server.register(plugins);
-    await server.start();
-    await Fixtures.Db.removeAllData();
+  await server.register(plugins);
+  await server.start();
+  await Fixtures.Db.removeAllData();
 });
 
 
 lab.after(async () => {
 
-    await Fixtures.Db.removeAllData();
-    await server.stop();
+  await Fixtures.Db.removeAllData();
+  await server.stop();
 });
 
 
 lab.experiment('DELETE /api/logout', () => {
 
-    let request;
+  let request;
 
 
-    lab.beforeEach(() => {
+  lab.beforeEach(() => {
 
-        request = {
-            method: 'DELETE',
-            url: '/api/logout'
-        };
-    });
-
-
-    lab.test('it returns HTTP 200 when credentials are missing', async () => {
-
-        const response = await server.inject(request);
-
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result.message).to.match(/success/i);
-    });
+    request = {
+      method: 'DELETE',
+      url: '/api/logout'
+    };
+  });
 
 
-    lab.test('it returns HTTP 200 when credentials are present', async () => {
+  lab.test('it returns HTTP 200 when credentials are missing', async () => {
 
-        const user = await User.create('ren', 'baddog', 'ren@stimpy.show');
-        const session = await Session.create('ren', 'baddog', 'ren@stimpy.show');
+    const response = await server.inject(request);
 
-        request.credentials = {
-            roles: [],
-            session,
-            user
-        };
+    Code.expect(response.statusCode).to.equal(200);
+    Code.expect(response.result.message).to.match(/success/i);
+  });
 
-        const response = await server.inject(request);
 
-        Code.expect(response.statusCode).to.equal(200);
-        Code.expect(response.result.message).to.match(/success/i);
-    });
+  lab.test('it returns HTTP 200 when credentials are present', async () => {
+
+    const user = await User.create('ren', 'baddog', 'ren@stimpy.show');
+    const session = await Session.create('ren', 'baddog', 'ren@stimpy.show');
+
+    request.credentials = {
+      roles: [],
+      session,
+      user
+    };
+
+    const response = await server.inject(request);
+
+    Code.expect(response.statusCode).to.equal(200);
+    Code.expect(response.result.message).to.match(/success/i);
+  });
 });

@@ -1,4 +1,4 @@
-'use strict';
+
 const Account = require('./account');
 const Admin = require('./admin');
 const Assert = require('assert');
@@ -9,198 +9,198 @@ const NewDate = require('joistick/new-date');
 
 
 const schema = Joi.object({
-    _id: Joi.object(),
-    email: Joi.string().email().lowercase().required(),
-    isActive: Joi.boolean().default(true),
-    password: Joi.string(),
-    resetPassword: Joi.object({
-        token: Joi.string().required(),
-        expires: Joi.date().required()
+  _id: Joi.object(),
+  email: Joi.string().email().lowercase().required(),
+  isActive: Joi.boolean().default(true),
+  password: Joi.string(),
+  resetPassword: Joi.object({
+    token: Joi.string().required(),
+    expires: Joi.date().required()
+  }),
+  roles: Joi.object({
+    admin: Joi.object({
+      id: Joi.string().required(),
+      name: Joi.string().required()
     }),
-    roles: Joi.object({
-        admin: Joi.object({
-            id: Joi.string().required(),
-            name: Joi.string().required()
-        }),
-        account: Joi.object({
-            id: Joi.string().required(),
-            name: Joi.string().required()
-        })
-    }).default(),
-    timeCreated: Joi.date().default(NewDate(), 'time of creation'),
-    username: Joi.string().token().lowercase().required()
+    account: Joi.object({
+      id: Joi.string().required(),
+      name: Joi.string().required()
+    })
+  }).default(),
+  timeCreated: Joi.date().default(NewDate(), 'time of creation'),
+  username: Joi.string().token().lowercase().required()
 });
 
 
 class User extends MongoModels {
-    static async create(username, password, email) {
+  static async create(username, password, email) {
 
-        Assert.ok(username, 'Missing username argument.');
-        Assert.ok(password, 'Missing password argument.');
-        Assert.ok(email, 'Missing email argument.');
+    Assert.ok(username, 'Missing username argument.');
+    Assert.ok(password, 'Missing password argument.');
+    Assert.ok(email, 'Missing email argument.');
 
-        const passwordHash = await this.generatePasswordHash(password);
-        const document = new this({
-            email,
-            isActive: true,
-            password: passwordHash.hash,
-            username
-        });
-        const users = await this.insertOne(document);
+    const passwordHash = await this.generatePasswordHash(password);
+    const document = new this({
+      email,
+      isActive: true,
+      password: passwordHash.hash,
+      username
+    });
+    const users = await this.insertOne(document);
 
-        users[0].password = passwordHash.password;
+    users[0].password = passwordHash.password;
 
-        return users[0];
+    return users[0];
+  }
+
+  static async findByCredentials(username, password) {
+
+    Assert.ok(username, 'Missing username argument.');
+    Assert.ok(password, 'Missing password argument.');
+
+    const query = { isActive: true };
+
+    if (username.indexOf('@') > -1) {
+      query.email = username.toLowerCase();
+    }
+    else {
+      query.username = username.toLowerCase();
     }
 
-    static async findByCredentials(username, password) {
+    const user = await this.findOne(query);
 
-        Assert.ok(username, 'Missing username argument.');
-        Assert.ok(password, 'Missing password argument.');
-
-        const query = { isActive: true };
-
-        if (username.indexOf('@') > -1) {
-            query.email = username.toLowerCase();
-        }
-        else {
-            query.username = username.toLowerCase();
-        }
-
-        const user = await this.findOne(query);
-
-        if (!user) {
-            return;
-        }
-
-        const passwordMatch = await Bcrypt.compare(password, user.password);
-
-        if (passwordMatch) {
-            return user;
-        }
+    if (!user) {
+      return;
     }
 
-    static findByEmail(email) {
+    const passwordMatch = await Bcrypt.compare(password, user.password);
 
-        Assert.ok(email, 'Missing email argument.');
+    if (passwordMatch) {
+      return user;
+    }
+  }
 
-        const query = { email: email.toLowerCase() };
+  static findByEmail(email) {
 
-        return this.findOne(query);
+    Assert.ok(email, 'Missing email argument.');
+
+    const query = { email: email.toLowerCase() };
+
+    return this.findOne(query);
+  }
+
+  static findByUsername(username) {
+
+    Assert.ok(username, 'Missing username argument.');
+
+    const query = { username: username.toLowerCase() };
+
+    return this.findOne(query);
+  }
+
+  static async generatePasswordHash(password) {
+
+    Assert.ok(password, 'Missing password argument.');
+
+    const salt = await Bcrypt.genSalt(10);
+    const hash = await Bcrypt.hash(password, salt);
+
+    return { password, hash };
+  }
+
+  constructor(attrs) {
+
+    super(attrs);
+
+    Object.defineProperty(this, '_roles', {
+      writable: true,
+      enumerable: false
+    });
+  }
+
+  canPlayRole(role) {
+
+    Assert.ok(role, 'Missing role argument.');
+
+    return this.roles.hasOwnProperty(role);
+  }
+
+  async hydrateRoles() {
+
+    if (this._roles) {
+      return this._roles;
     }
 
-    static findByUsername(username) {
+    this._roles = {};
 
-        Assert.ok(username, 'Missing username argument.');
-
-        const query = { username: username.toLowerCase() };
-
-        return this.findOne(query);
+    if (this.roles.account) {
+      this._roles.account = await Account.findById(this.roles.account.id);
     }
 
-    static async generatePasswordHash(password) {
-
-        Assert.ok(password, 'Missing password argument.');
-
-        const salt = await Bcrypt.genSalt(10);
-        const hash = await Bcrypt.hash(password, salt);
-
-        return { password, hash };
+    if (this.roles.admin) {
+      this._roles.admin = await Admin.findById(this.roles.admin.id);
     }
 
-    constructor(attrs) {
+    return this._roles;
+  }
 
-        super(attrs);
+  async linkAccount(id, name) {
 
-        Object.defineProperty(this, '_roles', {
-            writable: true,
-            enumerable: false
-        });
-    }
+    Assert.ok(id, 'Missing id argument.');
+    Assert.ok(name, 'Missing name argument.');
 
-    canPlayRole(role) {
+    const update = {
+      $set: {
+        'roles.account': { id, name }
+      }
+    };
 
-        Assert.ok(role, 'Missing role argument.');
+    return await User.findByIdAndUpdate(this._id, update);
+  }
 
-        return this.roles.hasOwnProperty(role);
-    }
+  async linkAdmin(id, name) {
 
-    async hydrateRoles() {
+    Assert.ok(id, 'Missing id argument.');
+    Assert.ok(name, 'Missing name argument.');
 
-        if (this._roles) {
-            return this._roles;
-        }
+    const update = {
+      $set: {
+        'roles.admin': { id, name }
+      }
+    };
 
-        this._roles = {};
+    return await User.findByIdAndUpdate(this._id, update);
+  }
 
-        if (this.roles.account) {
-            this._roles.account = await Account.findById(this.roles.account.id);
-        }
+  async unlinkAccount() {
 
-        if (this.roles.admin) {
-            this._roles.admin = await Admin.findById(this.roles.admin.id);
-        }
+    const update = {
+      $unset: {
+        'roles.account': undefined
+      }
+    };
 
-        return this._roles;
-    }
+    return await User.findByIdAndUpdate(this._id, update);
+  }
 
-    async linkAccount(id, name) {
+  async unlinkAdmin() {
 
-        Assert.ok(id, 'Missing id argument.');
-        Assert.ok(name, 'Missing name argument.');
+    const update = {
+      $unset: {
+        'roles.admin': undefined
+      }
+    };
 
-        const update = {
-            $set: {
-                'roles.account': { id, name }
-            }
-        };
-
-        return await User.findByIdAndUpdate(this._id, update);
-    }
-
-    async linkAdmin(id, name) {
-
-        Assert.ok(id, 'Missing id argument.');
-        Assert.ok(name, 'Missing name argument.');
-
-        const update = {
-            $set: {
-                'roles.admin': { id, name }
-            }
-        };
-
-        return await User.findByIdAndUpdate(this._id, update);
-    }
-
-    async unlinkAccount() {
-
-        const update = {
-            $unset: {
-                'roles.account': undefined
-            }
-        };
-
-        return await User.findByIdAndUpdate(this._id, update);
-    }
-
-    async unlinkAdmin() {
-
-        const update = {
-            $unset: {
-                'roles.admin': undefined
-            }
-        };
-
-        return await User.findByIdAndUpdate(this._id, update);
-    }
+    return await User.findByIdAndUpdate(this._id, update);
+  }
 }
 
 
 User.collectionName = 'users';
 User.schema = schema;
 User.indexes = [
-    { key: { username: 1 }, unique: true },
-    { key: { email: 1 }, unique: true }
+  { key: { username: 1 }, unique: true },
+  { key: { email: 1 }, unique: true }
 ];
 
 

@@ -1,6 +1,6 @@
 {
-  "name": "frame",
-  "version": "13.4.0",
+  "name": "anchor",
+  "version": "2.0.0",
   "description": "A user system API starter",
   "main": "index.js",
   "scripts": {
@@ -8,10 +8,21 @@
     "inspect": "nodemon --inspect -e js,md server.js",
     "first-time-setup": "node first-time-setup.js",
     "test": "lab -c -L",
-    "test-server": "lab -c -L -v $TEST_TARGET"
+    "test-server": "lab -c -L -v $TEST_TARGET",
+    "lint": "lab -dL",
+    "lint-fix": "lab -dL --lint-fix",
+    "coveralls": "lab -r lcov | ./node_modules/.bin/coveralls"
   },
-  "author": "Reza Akhavan <jedireza@gmail.com> (http://reza.akhavan.me/)",
+  "author": "Boston University Software & Application Innovation Lab",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hicsail/anchor/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hicsal/anchor.git"
+  },
+  "homepage": "https://github.com/hicsail/anchor#readme",
   "engines": {
     "node": "9.x.x"
   },
@@ -47,6 +58,7 @@
   },
   "devDependencies": {
     "code": "5.x.x",
+    "coveralls": "3.x.x",
     "lab": "15.x.x",
     "nodemon": "1.x.x",
     "promptly": "3.x.x"

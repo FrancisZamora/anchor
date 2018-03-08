@@ -1,4 +1,4 @@
-'use strict';
+
 const Account = require('../../../server/models/account');
 const Admin = require('../../../server/models/admin');
 const AdminGroup = require('../../../server/models/admin-group');
@@ -8,17 +8,17 @@ const User = require('../../../server/models/user');
 
 
 class Db {
-    static async removeAllData() {
+  static async removeAllData() {
 
-        return await Promise.all([
-            Account.deleteMany({}),
-            Admin.deleteMany({}),
-            AdminGroup.deleteMany({}),
-            Session.deleteMany({}),
-            Status.deleteMany({}),
-            User.deleteMany({})
-        ]);
-    }
+    return await Promise.all([
+      Account.deleteMany({}),
+      Admin.deleteMany({}),
+      AdminGroup.deleteMany({}),
+      Session.deleteMany({}),
+      Status.deleteMany({}),
+      User.deleteMany({})
+    ]);
+  }
 }
 
 
