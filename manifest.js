@@ -1,4 +1,3 @@
-
 const Confidence = require('confidence');
 const Config = require('./config');
 const Package = require('./package.json');
@@ -81,12 +80,8 @@ const manifest = {
         options: {
           mongodb: Config.get('/hapiMongoModels/mongodb'),
           models: [
-            Path.resolve(__dirname, './server/models/account'),
-            Path.resolve(__dirname, './server/models/admin-group'),
-            Path.resolve(__dirname, './server/models/admin'),
             Path.resolve(__dirname, './server/models/auth-attempt'),
             Path.resolve(__dirname, './server/models/session'),
-            Path.resolve(__dirname, './server/models/status'),
             Path.resolve(__dirname, './server/models/user')
           ],
           autoIndex: Config.get('/hapiMongoModels/autoIndex')
@@ -94,15 +89,6 @@ const manifest = {
       },
       {
         plugin: './server/auth'
-      },
-      {
-        plugin: './server/api/accounts'
-      },
-      {
-        plugin: './server/api/admin-groups'
-      },
-      {
-        plugin: './server/api/admins'
       },
       {
         plugin: './server/api/contact'
@@ -121,9 +107,6 @@ const manifest = {
       },
       {
         plugin: './server/api/signup'
-      },
-      {
-        plugin: './server/api/statuses'
       },
       {
         plugin: './server/api/users'

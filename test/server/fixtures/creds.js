@@ -1,8 +1,4 @@
-
-const Account = require('../../../server/models/account');
-const Admin = require('../../../server/models/admin');
 const Session = require('../../../server/models/session');
-const Slug = require('slug');
 const User = require('../../../server/models/user');
 
 
@@ -15,127 +11,146 @@ class Credentials {
     return `Basic ${combo64}`;
   }
 
-  static async createRootAdminUser() {
+  static async createRootUser() {
 
-    let [admin, user, session] = await Promise.all([
-      Admin.create('Root Admin'),
-      User.create('root', 'root', 'root@stimpy.show'),
+    let [user, session] = await Promise.all([
+      User.create('root', 'root', 'root@stimpy.show', 'Root user'),
       undefined
     ]);
-    const adminUpdate = {
-      $set: {
-        groups: {
-          root: 'Root'
-        },
-        user: {
-          id: `${user._id}`,
-          name: 'root'
-        }
-      }
-    };
     const userUpdate = {
       $set: {
-        'roles.admin': {
-          id: `${admin._id}`,
-          name: 'Root Admin'
-        }
+        'roles.root': true
       }
     };
 
     session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
 
-    [admin, user] = await Promise.all([
-      Admin.findByIdAndUpdate(admin._id, adminUpdate),
+    [user] = await Promise.all([
       User.findByIdAndUpdate(user._id, userUpdate)
     ]);
 
     return {
       scope: Object.keys(user.roles),
-      roles: { admin },
       user,
       session
     };
   }
 
-  static async createAdminUser(name, username, password, email, groups = []) {
+  static async createAdminUser() {
 
-    let [admin, user, session] = await Promise.all([
-      Admin.create(name),
-      User.create(username, password, email),
+    let [user, session] = await Promise.all([
+      User.create('admin', 'admin', 'admin@stimpy.show','Admin User'),
       undefined
     ]);
-    const adminUpdate = {
-      $set: {
-        groups: groups.reduce((accumulator, group) => {
-
-          accumulator[Slug(group).toLowerCase()] = group;
-
-          return accumulator;
-        }, {}),
-        user: {
-          id: `${user._id}`,
-          name: username
-        }
-      }
-    };
     const userUpdate = {
       $set: {
-        'roles.admin': {
-          id: `${admin._id}`,
-          name
-        }
+        'roles.admin': true
       }
     };
 
     session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
 
-    [admin, user] = await Promise.all([
-      Admin.findByIdAndUpdate(admin._id, adminUpdate),
+    [user] = await Promise.all([
       User.findByIdAndUpdate(user._id, userUpdate)
     ]);
 
     return {
       scope: Object.keys(user.roles),
-      roles: { admin },
       user,
       session
     };
   }
 
-  static async createAccountUser(name, username, password, email) {
 
-    let [account, user, session] = await Promise.all([
-      Account.create(name),
-      User.create(username, password, email),
+  static async createResearcherUser() {
+
+    let [user, session] = await Promise.all([
+      User.create('researcher', 'researcher', 'Researcher@stimpy.show','Researcher User'),
       undefined
     ]);
-    const adminUpdate = {
-      $set: {
-        user: {
-          id: `${user._id}`,
-          name: username
-        }
-      }
-    };
     const userUpdate = {
       $set: {
-        'roles.account': {
-          id: `${account._id}`,
-          name
-        }
+        'roles.researcher': true
       }
     };
 
     session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
 
-    [account, user] = await Promise.all([
-      Account.findByIdAndUpdate(account._id, adminUpdate),
+    [user] = await Promise.all([
       User.findByIdAndUpdate(user._id, userUpdate)
     ]);
 
     return {
       scope: Object.keys(user.roles),
-      roles: { account },
+      user,
+      session
+    };
+  }
+
+
+  static async createAnalystUser() {
+
+    let [user, session] = await Promise.all([
+      User.create('analyst', 'analyst', 'analyst@stimpy.show','Analyst User'),
+      undefined
+    ]);
+    const userUpdate = {
+      $set: {
+        'roles.analyst': true
+      }
+    };
+
+    session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
+
+    [user] = await Promise.all([
+      User.findByIdAndUpdate(user._id, userUpdate)
+    ]);
+
+    return {
+      scope: Object.keys(user.roles),
+      user,
+      session
+    };
+  }
+
+
+  static async createClinicianUser() {
+
+    let [user, session] = await Promise.all([
+      User.create('clinician', 'clinician', 'clinician@stimpy.show','Clinician User'),
+      undefined
+    ]);
+    const userUpdate = {
+      $set: {
+        'roles.clinician': {}
+      }
+    };
+
+    session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
+
+    [user] = await Promise.all([
+      User.findByIdAndUpdate(user._id, userUpdate)
+    ]);
+
+    return {
+      scope: Object.keys(user.roles),
+      user,
+      session
+    };
+  }
+
+
+  static async createUser(username, password, email, name) {
+
+    let [user, session] = await Promise.all([
+      User.create('root', 'root', 'root@stimpy.show','basic user'),
+      undefined
+    ]);
+
+    session = await Session.create(`${user._id}`, '127.0.0.1', 'Lab');
+
+    return {
+      scope: Object.keys(user.roles),
       user,
       session
     };

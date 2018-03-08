@@ -1,4 +1,3 @@
-
 const Code = require('code');
 const Fixtures = require('../fixtures');
 const Hapi = require('hapi');

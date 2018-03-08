@@ -1,5 +1,3 @@
-
-const Account = require('../models/account');
 const Boom = require('boom');
 const Config = require('../../config');
 const Joi = require('joi');
@@ -17,12 +15,7 @@ const register = function (server, serverOptions) {
       tags: ['api','signup'],
       auth: false,
       validate: {
-        payload: {
-          name: Joi.string().required(),
-          email: Joi.string().email().lowercase().required(),
-          username: Joi.string().token().lowercase().required(),
-          password: Joi.string().required()
-        }
+        payload: User.payload
       },
       pre: [{
         assign: 'usernameCheck',
@@ -54,20 +47,14 @@ const register = function (server, serverOptions) {
 
       // create and link account and user documents
 
-      let [account, user] = await Promise.all([
-        Account.create(request.payload.name),
+      let [user] = await Promise.all([
         User.create(
           request.payload.username,
           request.payload.password,
-          request.payload.email
+          request.payload.email,
+          request.payload.name
         )
       ]);
-
-      [account, user] = await Promise.all([
-        account.linkUser(`${user._id}`, user.username),
-        user.linkAccount(`${account._id}`, account.fullName())
-      ]);
-
       // send welcome email
 
       const emailOptions = {

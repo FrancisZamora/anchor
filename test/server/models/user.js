@@ -1,6 +1,3 @@
-
-const Account = require('../../../server/models/account');
-const Admin = require('../../../server/models/admin');
 const Code = require('code');
 const Config = require('../../../config');
 const Fixtures = require('../fixtures');

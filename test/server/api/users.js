@@ -1,4 +1,3 @@
-
 const Auth = require('../../../server/auth');
 const Code = require('code');
 const Fixtures = require('../fixtures');
@@ -11,8 +10,12 @@ const Users = require('../../../server/api/users');
 
 const lab = exports.lab = Lab.script();
 let server;
-let rootCredentials;
-let accountCredentials;
+let rootUser;
+let adminUser;
+let researcherUser;
+let analystUser;
+let clinicianUser;
+let basicUser;
 
 
 lab.before(async () => {
@@ -35,10 +38,13 @@ lab.before(async () => {
   await server.start();
   await Fixtures.Db.removeAllData();
 
-  [rootCredentials, accountCredentials] = await Promise.all([
-    Fixtures.Creds.createRootAdminUser(),
-    Fixtures.Creds.createAccountUser('Stimpson Cat', 'stimpy', 'goodcat', 'stimpy@ren.show'),
-    Fixtures.Creds.createAdminUser('Ren Hoek', 'ren', 'baddog', 'ren@stimpy.show')
+  [rootUser, adminUser, researcherUser, analystUser, clinicianUser, basicUser] = await Promise.all([
+    Fixtures.Creds.createRootUser(),
+    Fixtures.Creds.createAdminUser(),
+    Fixtures.Creds.createResearcherUser(),
+    Fixtures.Creds.createAnalystUser(),
+    Fixtures.Creds.createClinicianUser(),
+    Fixtures.Creds.createUser(),
   ]);
 });
 
@@ -60,7 +66,7 @@ lab.experiment('GET /api/users', () => {
     request = {
       method: 'GET',
       url: '/api/users',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -87,7 +93,7 @@ lab.experiment('POST /api/users', () => {
     request = {
       method: 'POST',
       url: '/api/users',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 

@@ -1,4 +1,3 @@
-
 const AuthAttempt = require('../models/auth-attempt');
 const Bcrypt = require('bcrypt');
 const Boom = require('boom');

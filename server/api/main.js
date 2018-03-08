@@ -1,6 +1,3 @@
-
-
-
 const register = function (server, serverOptions) {
 
   server.route({

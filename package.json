@@ -40,6 +40,8 @@
     "handlebars": "4.x.x",
     "hapi": "17.x.x",
     "hapi-auth-basic": "5.x.x",
+    "hapi-auth-cookie": "^8.1.0",
+    "hapi-auth-jwt2": "^8.0.0",
     "hapi-mongo-models": "7.x.x",
     "hapi-remote-address": "1.x.x",
     "hapi-swagger": "9.x.x",

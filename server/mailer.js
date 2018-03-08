@@ -1,4 +1,3 @@
-
 const Config = require('../config');
 const Fs = require('fs');
 const Handlebars = require('handlebars');

@@ -1,4 +1,3 @@
-
 const Code = require('code');
 const Config = require('../../../config');
 const Fixtures = require('../fixtures');

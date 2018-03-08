@@ -1,4 +1,3 @@
-
 const Confidence = require('confidence');
 const Dotenv = require('dotenv');
 
@@ -12,7 +11,7 @@ const criteria = {
 
 const config = {
   $meta: 'This file configures the plot device.',
-  projectName: 'Frame',
+  projectName: 'Anchor',
   port: {
     web: {
       $filter: 'env',
@@ -36,13 +35,14 @@ const config = {
         db: {
           $filter: 'env',
           production: process.env.MONGODB_DB_NAME,
-          test: 'frame-test',
-          $default: 'frame'
+          test: 'anchor-test',
+          $default: 'anchor'
         }
       }
     },
     autoIndex: true
   },
+  authSecret: 'RiDxb9kW5YEu4dospW7gZZSCjc9sUC9h',
   nodemailer: {
     host: 'smtp.gmail.com',
     port: 465,

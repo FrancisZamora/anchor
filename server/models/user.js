@@ -1,8 +1,6 @@
-
-const Account = require('./account');
-const Admin = require('./admin');
 const Assert = require('assert');
 const Bcrypt = require('bcrypt');
+const Clinician = require('./clinician');
 const Joi = require('joi');
 const MongoModels = require('mongo-models');
 const NewDate = require('joistick/new-date');
@@ -12,39 +10,46 @@ const schema = Joi.object({
   _id: Joi.object(),
   email: Joi.string().email().lowercase().required(),
   isActive: Joi.boolean().default(true),
+  name: Joi.string().required(),
   password: Joi.string(),
   resetPassword: Joi.object({
     token: Joi.string().required(),
     expires: Joi.date().required()
   }),
   roles: Joi.object({
-    admin: Joi.object({
-      id: Joi.string().required(),
-      name: Joi.string().required()
-    }),
-    account: Joi.object({
-      id: Joi.string().required(),
-      name: Joi.string().required()
-    })
+    clinician: Clinician.schema,
+    analyst: Joi.boolean().required(),
+    researcher: Joi.boolean().required(),
+    admin: Joi.boolean().required(),
+    root: Joi.boolean().required()
   }).default(),
   timeCreated: Joi.date().default(NewDate(), 'time of creation'),
   username: Joi.string().token().lowercase().required()
 });
 
+const payload = Joi.object({
+  email: Joi.string().email().lowercase().required(),
+  name: Joi.string().required(),
+  password: Joi.string(),
+  username: Joi.string().token().lowercase().required()
+});
+
 
 class User extends MongoModels {
-  static async create(username, password, email) {
+  static async create(username, password, email, name) {
 
     Assert.ok(username, 'Missing username argument.');
     Assert.ok(password, 'Missing password argument.');
     Assert.ok(email, 'Missing email argument.');
+    Assert.ok(name, 'Missing name argument.');
 
     const passwordHash = await this.generatePasswordHash(password);
     const document = new this({
       email,
       isActive: true,
       password: passwordHash.hash,
-      username
+      username,
+      name
     });
     const users = await this.insertOne(document);
 
@@ -117,87 +122,12 @@ class User extends MongoModels {
       enumerable: false
     });
   }
-
-  canPlayRole(role) {
-
-    Assert.ok(role, 'Missing role argument.');
-
-    return this.roles.hasOwnProperty(role);
-  }
-
-  async hydrateRoles() {
-
-    if (this._roles) {
-      return this._roles;
-    }
-
-    this._roles = {};
-
-    if (this.roles.account) {
-      this._roles.account = await Account.findById(this.roles.account.id);
-    }
-
-    if (this.roles.admin) {
-      this._roles.admin = await Admin.findById(this.roles.admin.id);
-    }
-
-    return this._roles;
-  }
-
-  async linkAccount(id, name) {
-
-    Assert.ok(id, 'Missing id argument.');
-    Assert.ok(name, 'Missing name argument.');
-
-    const update = {
-      $set: {
-        'roles.account': { id, name }
-      }
-    };
-
-    return await User.findByIdAndUpdate(this._id, update);
-  }
-
-  async linkAdmin(id, name) {
-
-    Assert.ok(id, 'Missing id argument.');
-    Assert.ok(name, 'Missing name argument.');
-
-    const update = {
-      $set: {
-        'roles.admin': { id, name }
-      }
-    };
-
-    return await User.findByIdAndUpdate(this._id, update);
-  }
-
-  async unlinkAccount() {
-
-    const update = {
-      $unset: {
-        'roles.account': undefined
-      }
-    };
-
-    return await User.findByIdAndUpdate(this._id, update);
-  }
-
-  async unlinkAdmin() {
-
-    const update = {
-      $unset: {
-        'roles.admin': undefined
-      }
-    };
-
-    return await User.findByIdAndUpdate(this._id, update);
-  }
 }
 
 
 User.collectionName = 'users';
 User.schema = schema;
+User.payload = payload;
 User.indexes = [
   { key: { username: 1 }, unique: true },
   { key: { email: 1 }, unique: true }

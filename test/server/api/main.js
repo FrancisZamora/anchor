@@ -1,4 +1,3 @@
-
 const Code = require('code');
 const Hapi = require('hapi');
 const Lab = require('lab');

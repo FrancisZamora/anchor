@@ -1,4 +1,3 @@
-
 const Auth = require('../../server/auth');
 const Code = require('code');
 const Fixtures = require('./fixtures');

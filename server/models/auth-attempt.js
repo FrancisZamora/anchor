@@ -1,4 +1,3 @@
-
 const Assert = require('assert');
 const Config = require('../../config');
 const Joi = require('joi');

@@ -1,6 +1,3 @@
-
-const Admin = require('../models/admin');
-const Account = require('../models/account');
 const Boom = require('boom');
 const Joi = require('joi');
 const Preware = require('../preware');
@@ -91,8 +88,9 @@ const register = function (server, serverOptions) {
       const username = request.payload.username;
       const password = request.payload.password;
       const email = request.payload.email;
+      const name = request.payload.name;
 
-      return await User.create(username, password, email);
+      return await User.create(username, password, email, name);
     }
   });
 
@@ -199,11 +197,6 @@ const register = function (server, serverOptions) {
       if (!user) {
         throw Boom.notFound('User not found.');
       }
-
-      await Promise.all([
-        Account.findOneAndUpdate(queryByUserId, updateRole),
-        Admin.findOneAndUpdate(queryByUserId, updateRole)
-      ]);
 
       return user;
     }
@@ -371,8 +364,6 @@ const register = function (server, serverOptions) {
       };
       const [user] = await Promise.all([
         User.findByIdAndUpdate(userId, updateUser, findOptions),
-        Account.findOneAndUpdate(queryByUserId, updateRole),
-        Admin.findOneAndUpdate(queryByUserId, updateRole)
       ]);
 
       return user;
