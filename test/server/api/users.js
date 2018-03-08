@@ -103,7 +103,8 @@ lab.experiment('POST /api/users', () => {
     request.payload = {
       email: 'steve@stimpy.show',
       password: 'lovely',
-      username: 'ren'
+      username: 'ren',
+      name: 'username'
     };
 
     const response = await server.inject(request);
@@ -207,7 +208,8 @@ lab.experiment('PUT /api/users/{id}', () => {
     request.payload = {
       isActive: true,
       email: 'ren@stimpy.show',
-      username: 'ren'
+      username: 'ren',
+      name: 'username'
     };
 
     const response = await server.inject(request);
@@ -223,7 +225,8 @@ lab.experiment('PUT /api/users/{id}', () => {
     request.payload = {
       isActive: true,
       email: 'ren@stimpy.show',
-      username: 'pleasesteve'
+      username: 'pleasesteve',
+      name: 'username'
     };
 
     const response = await server.inject(request);
@@ -239,7 +242,8 @@ lab.experiment('PUT /api/users/{id}', () => {
     request.payload = {
       isActive: true,
       email: 'pleasesteve@stimpy.show',
-      username: 'pleasesteve'
+      username: 'pleasesteve',
+      name: 'username'
     };
 
     const response = await server.inject(request);
@@ -257,7 +261,8 @@ lab.experiment('PUT /api/users/{id}', () => {
     request.payload = {
       isActive: true,
       email: 'finally@made.io',
-      username: 'yllanif'
+      username: 'yllanif',
+      name: 'username'
     };
 
     const response = await server.inject(request);

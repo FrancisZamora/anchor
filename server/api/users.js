@@ -11,7 +11,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin','researcher','analyst'],
         strategies: ['simple','session']
       },
       validate: {
@@ -42,7 +42,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin','researcher'],
         strategies: ['simple','session']
       },
       validate: {
@@ -98,7 +98,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin','researcher','analyst'],
         strategies: ['simple','session']
       }
     },
@@ -121,7 +121,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin'],
         strategies: ['simple','session']
       },
       validate: {
@@ -196,7 +196,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin'],
         strategies: ['simple','session']
       },
       validate: {
@@ -224,7 +224,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin'],
         strategies: ['simple','session']
       },
       validate: {
@@ -261,8 +261,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        strategies: ['simple','session'],
-        scope: ['admin', 'account']
+        strategies: ['simple','session']
       }
     },
     handler: async function (request, h) {
@@ -281,7 +280,6 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: ['admin', 'account'],
         strategies: ['simple','session']
       },
       validate: {
@@ -353,7 +351,6 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','users'],
       auth: {
-        scope: ['admin', 'account'],
         strategies: ['simple','session']
       },
       validate: {

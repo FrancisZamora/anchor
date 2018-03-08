@@ -11,7 +11,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin','researcher','analyst'],
         strategies: ['simple','session']
       },
       validate: {
@@ -42,7 +42,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin','researcher','analyst'],
         strategies: ['simple','session']
       }
     },
@@ -65,7 +65,7 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: 'admin',
+        scope: ['root','admin'],
         strategies: ['simple','session']
       }
     },
@@ -88,7 +88,6 @@ const register = function (server, serverOptions) {
     options: {
       tags: ['api','session'],
       auth: {
-        scope: ['admin', 'account'],
         strategies: ['simple','session']
       }
     },
