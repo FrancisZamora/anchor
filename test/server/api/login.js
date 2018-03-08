@@ -32,7 +32,7 @@ lab.before(async () => {
   await server.start();
   await Fixtures.Db.removeAllData();
 
-  await User.create('ren', 'baddog', 'ren@stimpy.show');
+  await User.create('ren', 'baddog', 'ren@stimpy.show', 'username');
 });
 
 

@@ -28,7 +28,7 @@ lab.experiment('User Model', () => {
 
   lab.test('it returns a new instance when create succeeds', async () => {
 
-    const user = await User.create('ren', 'bighouseblues', 'ren@stimpy.show');
+    const user = await User.create('ren', 'bighouseblues', 'ren@stimpy.show', 'username');
 
     Code.expect(user).to.be.an.instanceOf(User);
   });
@@ -89,28 +89,7 @@ lab.experiment('User Model', () => {
   });
 
 
-  lab.test('it returns boolean values when checking if a user can play roles', async () => {
-
-    let user;
-
-    user = await User.findByUsername('ren');
-    user = await User.findByIdAndUpdate(user._id, {
-      $set: {
-        roles: {
-          account: {
-            id: '555555555555555555555555',
-            name: 'Ren Hoek'
-          }
-        }
-      }
-    });
-
-    Code.expect(user.canPlayRole('admin')).to.equal(false);
-    Code.expect(user.canPlayRole('account')).to.equal(true);
-  });
-
-
-  lab.test('it hydrates roles when both admin and account are missing', async () => {
+  lab.test('it hydrates roles when all roles are missing', async () => {
 
     let user;
 
@@ -128,95 +107,4 @@ lab.experiment('User Model', () => {
   });
 
 
-  lab.test('it hydrates roles when an account role is present', async () => {
-
-    const account = await Account.create('Run Hoek');
-
-    let user;
-
-    user = await User.findByUsername('ren');
-    user = await User.findByIdAndUpdate(user._id, {
-      $set: {
-        roles: {
-          account: {
-            id: `${account._id}`,
-            name: account.fullName()
-          }
-        }
-      }
-    });
-
-    await user.hydrateRoles();
-
-    Code.expect(user._roles).to.be.an.object();
-    Code.expect(Object.keys(user._roles)).to.have.length(1);
-    Code.expect(user._roles.account).to.be.an.instanceOf(Account);
-  });
-
-
-  lab.test('it hydrates roles when an admin role is present', async () => {
-
-    const admin = await Admin.create('Run Hoek');
-
-    let user;
-
-    user = await User.findByUsername('ren');
-    user = await User.findByIdAndUpdate(user._id, {
-      $set: {
-        roles: {
-          admin: {
-            id: `${admin._id}`,
-            name: admin.fullName()
-          }
-        }
-      }
-    });
-
-    await user.hydrateRoles();
-
-    Code.expect(user._roles).to.be.an.object();
-    Code.expect(Object.keys(user._roles)).to.have.length(1);
-    Code.expect(user._roles.admin).to.be.an.instanceOf(Admin);
-  });
-
-
-  lab.test('it links and unlinks roles', async () => {
-
-    let user = await User.create('guineapig', 'wheel', 'wood@chips.gov');
-    const [admin, account] = await Promise.all([
-      Admin.create('Guinea Pig'),
-      Account.create('Guinea Pig')
-    ]);
-
-    Code.expect(user.roles.admin).to.not.exist();
-    Code.expect(user.roles.account).to.not.exist();
-
-    user = await user.linkAdmin(`${admin._id}`, admin.fullName());
-    user = await user.linkAccount(`${account._id}`, account.fullName());
-
-    Code.expect(user.roles.admin).to.be.an.object();
-    Code.expect(user.roles.account).to.be.an.object();
-
-    user = await user.unlinkAdmin();
-    user = await user.unlinkAccount();
-
-    Code.expect(user.roles.admin).to.not.exist();
-    Code.expect(user.roles.account).to.not.exist();
-  });
-
-
-  lab.test('it hydrates roles and caches the results for subsequent access', async () => {
-
-    const user = await User.findByUsername('ren');
-
-    await user.hydrateRoles();
-
-    Code.expect(user._roles).to.be.an.object();
-    Code.expect(Object.keys(user._roles)).to.have.length(1);
-    Code.expect(user._roles.admin).to.be.an.instanceOf(Admin);
-
-    const roles = await user.hydrateRoles();
-
-    Code.expect(user._roles).to.equal(roles);
-  });
 });

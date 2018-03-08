@@ -56,6 +56,12 @@ const manifest = {
         plugin: 'hapi-auth-basic'
       },
       {
+        plugin: 'hapi-auth-cookie'
+      },
+      {
+        plugin: 'hapi-auth-jwt2'
+      },
+      {
         plugin: 'hapi-remote-address'
       },
       {

@@ -63,7 +63,7 @@ lab.experiment('DELETE /api/signup', () => {
 
   lab.test('it returns HTTP 409 when the username is already in use', async () => {
 
-    await User.create('ren', 'baddog', 'ren@stimpy.show');
+    await User.create('ren', 'baddog', 'ren@stimpy.show', 'username');
 
     request.payload = {
       name: 'Unoriginal Bill',

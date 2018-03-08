@@ -18,11 +18,11 @@ const schema = Joi.object({
   }),
   roles: Joi.object({
     clinician: Clinician.schema,
-    analyst: Joi.boolean().required(),
-    researcher: Joi.boolean().required(),
-    admin: Joi.boolean().required(),
-    root: Joi.boolean().required()
-  }).default(),
+    analyst: Joi.boolean(),
+    researcher: Joi.boolean(),
+    admin: Joi.boolean(),
+    root: Joi.boolean()
+  }).default({}),
   timeCreated: Joi.date().default(NewDate(), 'time of creation'),
   username: Joi.string().token().lowercase().required()
 });

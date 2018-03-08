@@ -44,7 +44,7 @@ lab.before(async () => {
     Fixtures.Creds.createResearcherUser(),
     Fixtures.Creds.createAnalystUser(),
     Fixtures.Creds.createClinicianUser(),
-    Fixtures.Creds.createUser(),
+    Fixtures.Creds.createUser()
   ]);
 });
 
@@ -155,7 +155,7 @@ lab.experiment('GET /api/users/{id}', () => {
     request = {
       method: 'GET',
       url: '/api/users/{id}',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -196,7 +196,7 @@ lab.experiment('PUT /api/users/{id}', () => {
     request = {
       method: 'PUT',
       url: '/api/users/{id}',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -280,7 +280,7 @@ lab.experiment('DELETE /api/users/{id}', () => {
     request = {
       method: 'DELETE',
       url: '/api/users/{id}',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -321,7 +321,7 @@ lab.experiment('PUT /api/users/{id}/password', () => {
     request = {
       method: 'PUT',
       url: '/api/users/{id}/password',
-      credentials: rootCredentials
+      credentials: rootUser
     };
   });
 
@@ -368,7 +368,7 @@ lab.experiment('GET /api/users/my', () => {
     request = {
       method: 'GET',
       url: '/api/users/my',
-      credentials: accountCredentials
+      credentials: basicUser
     };
   });
 
@@ -394,7 +394,7 @@ lab.experiment('PUT /api/users/my', () => {
     request = {
       method: 'PUT',
       url: '/api/users/my',
-      credentials: accountCredentials
+      credentials: basicUser
     };
   });
 
@@ -456,7 +456,7 @@ lab.experiment('PUT /api/users/my/password', () => {
     request = {
       method: 'PUT',
       url: '/api/users/my/password',
-      credentials: accountCredentials
+      credentials: basicUser
     };
   });
 

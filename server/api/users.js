@@ -184,14 +184,6 @@ const register = function (server, serverOptions) {
           email: request.payload.email
         }
       };
-      const queryByUserId = {
-        'user.id': request.params.id
-      };
-      const updateRole = {
-        $set: {
-          'user.name': request.payload.username
-        }
-      };
       const user = await User.findByIdAndUpdate(request.params.id, updateUser);
 
       if (!user) {
@@ -354,16 +346,8 @@ const register = function (server, serverOptions) {
       const findOptions = {
         fields: User.fieldsAdapter('username email roles')
       };
-      const queryByUserId = {
-        'user.id': userId
-      };
-      const updateRole = {
-        $set: {
-          'user.name': request.payload.username
-        }
-      };
       const [user] = await Promise.all([
-        User.findByIdAndUpdate(userId, updateUser, findOptions),
+        User.findByIdAndUpdate(userId, updateUser, findOptions)
       ]);
 
       return user;

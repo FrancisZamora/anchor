@@ -41,6 +41,7 @@ lab.before(async () => {
 
       try {
         await request.server.auth.test('simple', request);
+        await request.server.auth.test('session', request);
 
         return { isValid: true };
       }

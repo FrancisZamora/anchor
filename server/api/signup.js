@@ -1,6 +1,5 @@
 const Boom = require('boom');
 const Config = require('../../config');
-const Joi = require('joi');
 const Mailer = require('../mailer');
 const Session = require('../models/session');
 const User = require('../models/user');
@@ -47,7 +46,7 @@ const register = function (server, serverOptions) {
 
       // create and link account and user documents
 
-      let [user] = await Promise.all([
+      const [user] = await Promise.all([
         User.create(
           request.payload.username,
           request.payload.password,

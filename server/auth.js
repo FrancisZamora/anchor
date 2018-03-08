@@ -80,7 +80,7 @@ const register = function (server, options) {
     }
   });
 
-  server.auth.default('simple');
+  server.auth.default('session');
 };
 
 
@@ -89,6 +89,7 @@ module.exports = {
   dependencies: [
     'hapi-auth-basic',
     'hapi-auth-cookie',
+    'hapi-auth-jwt2',
     'hapi-mongo-models'
   ],
   register
